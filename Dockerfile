@@ -13,7 +13,8 @@ RUN npm run build
 FROM golang:1.27-alpine AS gobuild
 WORKDIR /src
 COPY go.mod ./
-COPY main.go store.go slots.go server.go ./
+# 复制根目录全部 Go 文件（含测试文件，go build 会忽略），避免新增文件漏拷
+COPY *.go ./
 COPY web/ ./web/
 COPY --from=webbuild /app/web/dist ./web/dist
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /timeplanner .
