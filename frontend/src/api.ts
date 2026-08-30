@@ -1,5 +1,40 @@
 import type { Block, RecurEvent, Settings, WeekData } from './types'
 
+export interface SettingsInfo extends Settings {
+  passwordSet: boolean
+}
+
+// ---------- 管理密码的本地保存 ----------
+
+const STORAGE_KEY = 'timeplanner.adminPassword'
+
+function loadStoredPassword(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+let adminPassword = loadStoredPassword()
+
+/** 当前保存的管理密码（空字符串表示游客） */
+export function getAdminPassword(): string {
+  return adminPassword
+}
+
+export function setAdminPassword(pw: string): void {
+  adminPassword = pw
+  try {
+    if (pw) localStorage.setItem(STORAGE_KEY, pw)
+    else localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* localStorage 不可用时仅保留内存态 */
+  }
+}
+
+// ---------- 请求封装 ----------
+
 async function unwrap<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => null)
   if (!res.ok) {
@@ -10,15 +45,24 @@ async function unwrap<T>(res: Response): Promise<T> {
 
 const get = <T,>(url: string) => fetch(url).then((r) => unwrap<T>(r))
 
+function sendHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (adminPassword) h['X-Admin-Password'] = adminPassword
+  return h
+}
+
 const send = <T,>(method: string, url: string, data?: unknown) =>
   fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: sendHeaders(),
     body: data === undefined ? undefined : JSON.stringify(data),
   }).then((r) => unwrap<T>(r))
 
 export const api = {
   week: (date?: string) => get<WeekData>(`/api/week${date ? `?date=${date}` : ''}`),
+  settings: () => get<SettingsInfo>('/api/settings'),
+  login: (password: string) => send<{ ok: boolean }>('POST', '/api/login', { password }),
+  changePassword: (next: string) => send<{ ok: boolean }>('POST', '/api/password', { next }),
   events: () => get<{ events: RecurEvent[] }>('/api/events'),
   createEvent: (e: Partial<RecurEvent>) => send<RecurEvent>('POST', '/api/events', e),
   updateEvent: (id: string, e: Partial<RecurEvent>) => send<RecurEvent>('PUT', `/api/events/${id}`, e),

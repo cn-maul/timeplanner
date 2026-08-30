@@ -6,12 +6,14 @@ import WeekGrid from './WeekGrid'
 interface Props {
   day: DayData
   settings: Settings
+  /** false=游客只读：不显示“安排”按钮，活动列表不可点击 */
+  editable?: boolean
   onCreateIn: (date: string, start: number, end: number) => void
   onEditBlock: (b: Block) => void
   onEditEvent: (occ: Occurrence) => void
 }
 
-export default function DayView({ day, settings, onCreateIn, onEditBlock, onEditEvent }: Props) {
+export default function DayView({ day, settings, editable = true, onCreateIn, onEditBlock, onEditEvent }: Props) {
   const { stats } = day
   const total = Math.max(1, mm(settings.dayEnd) - mm(settings.dayStart))
   const fixedPct = (stats.fixedMin / total) * 100
@@ -52,13 +54,15 @@ export default function DayView({ day, settings, onCreateIn, onEditBlock, onEdit
                     </div>
                     <div className="text-xs text-slate-400">{fmtDur(f.minutes)}</div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onCreateIn(day.date, mm(f.start), mm(f.end))}
-                    className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-500"
-                  >
-                    安排
-                  </button>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => onCreateIn(day.date, mm(f.start), mm(f.end))}
+                      className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-500"
+                    >
+                      安排
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -71,21 +75,29 @@ export default function DayView({ day, settings, onCreateIn, onEditBlock, onEdit
             <p className="text-sm text-slate-400">还没有安排，点击左侧空闲时段添加。</p>
           ) : (
             <ul className="space-y-1">
-              {day.blocks.map((b) => (
-                <li key={b.id}>
-                  <button
-                    type="button"
-                    onClick={() => onEditBlock(b)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50"
-                  >
+              {day.blocks.map((b) => {
+                const inner = (
+                  <>
                     <span className={`h-2 w-2 shrink-0 rounded-full ${BLOCK_CATEGORIES[b.category].dot}`} />
                     <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{b.title}</span>
                     <span className="text-xs tabular-nums text-slate-400">
                       {b.start}–{b.end}
                     </span>
-                  </button>
-                </li>
-              ))}
+                  </>
+                )
+                const cls = 'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left'
+                return (
+                  <li key={b.id}>
+                    {editable ? (
+                      <button type="button" onClick={() => onEditBlock(b)} className={`${cls} transition hover:bg-slate-50`}>
+                        {inner}
+                      </button>
+                    ) : (
+                      <div className={cls}>{inner}</div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>

@@ -7,8 +7,8 @@ interface Props {
   days: DayData[]
   settings: Settings
   rowHeight?: number
-  /** 点击空闲时段：date、起始分钟、结束分钟 */
-  onCreateIn: (date: string, start: number, end: number) => void
+  /** 点击空闲时段：date、起始分钟、结束分钟；游客模式下不传，空闲格仅展示 */
+  onCreateIn?: (date: string, start: number, end: number) => void
   onEditBlock?: (block: Block) => void
   onEditEvent?: (occ: Occurrence) => void
   onOpenDay?: (date: string) => void
@@ -145,30 +145,43 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
         </span>
       </button>
       <div className="relative flex-1" style={{ height: totalH, ...hourLines }}>
-        {/* 空闲时段（点击安排） */}
+        {/* 空闲时段（管理员可点击安排，游客仅展示） */}
         {day.free.map((f) => {
           const top = ((mm(f.start) - startMin) / 60) * rowHeight
           const h = Math.max(14, ((mm(f.end) - mm(f.start)) / 60) * rowHeight - 2)
-          return (
-            <button
-              key={`free-${f.start}`}
-              type="button"
-              onClick={() => onCreateIn?.(day.date, mm(f.start), mm(f.end))}
-              title={`空闲 ${f.start}–${f.end}，点击安排`}
-              className="group absolute inset-x-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 transition-colors hover:border-indigo-300 hover:bg-indigo-50/80"
-              style={{ top: top + 1, height: h }}
-            >
+          const cls = `group absolute inset-x-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 ${
+            onCreateIn ? 'cursor-pointer transition-colors hover:border-indigo-300 hover:bg-indigo-50/80' : ''
+          }`
+          const style = { top: top + 1, height: h }
+          const label = (
+            <>
               {h > 44 && (
                 <span className="pointer-events-none absolute inset-x-0 top-1.5 text-center text-[11px] tabular-nums text-slate-400 opacity-70 group-hover:opacity-100">
                   {f.start}–{f.end}
                 </span>
               )}
-              {h > 72 && (
+              {h > 72 && onCreateIn && (
                 <span className="pointer-events-none absolute inset-0 m-auto flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 opacity-0 shadow-sm ring-1 ring-slate-200 transition-opacity group-hover:opacity-100">
                   ＋
                 </span>
               )}
+            </>
+          )
+          return onCreateIn ? (
+            <button
+              key={`free-${f.start}`}
+              type="button"
+              onClick={() => onCreateIn(day.date, mm(f.start), mm(f.end))}
+              title={`空闲 ${f.start}–${f.end}，点击安排`}
+              className={cls}
+              style={style}
+            >
+              {label}
             </button>
+          ) : (
+            <div key={`free-${f.start}`} className={cls} style={style} title={`空闲 ${f.start}–${f.end}`}>
+              {label}
+            </div>
           )
         })}
 
@@ -185,20 +198,20 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
           const t0 = isEvent ? item.occ.start : item.block.start
           const t1 = isEvent ? item.occ.end : item.block.end
           const key = isEvent ? `ev-${item.occ.eventId}` : `bk-${item.block.id}`
-          const onClick = isEvent ? () => onEditEvent?.(item.occ) : () => onEditBlock?.(item.block)
+          const onClick = isEvent ? onEditEvent && (() => onEditEvent(item.occ)) : onEditBlock && (() => onEditBlock(item.block))
           return (
             <div
               key={key}
-              role="button"
-              tabIndex={0}
+              role={onClick ? 'button' : undefined}
+              tabIndex={onClick ? 0 : undefined}
               onClick={onClick}
               onKeyDown={(ev) => {
-                if (ev.key === 'Enter') onClick()
+                if (onClick && ev.key === 'Enter') onClick()
               }}
-              title={`${title} ${t0}–${t1}（点击${isEvent ? '编辑事件' : '编辑安排'}）`}
-              className={`absolute z-10 cursor-pointer overflow-hidden rounded-md px-1.5 py-0.5 shadow-sm transition ${
-                isEvent ? meta.solid : `${meta.soft} hover:brightness-95`
-              }`}
+              title={`${title} ${t0}–${t1}${onClick ? `（点击${isEvent ? '编辑事件' : '编辑安排'}）` : ''}`}
+              className={`absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 shadow-sm ${
+                onClick ? 'cursor-pointer transition hover:brightness-95' : 'cursor-default'
+              } ${isEvent ? meta.solid : meta.soft}`}
               style={{
                 top: top + 1,
                 height: h,

@@ -3,6 +3,8 @@ import { EVENT_CATEGORIES, weekdayLabel } from '../constants'
 
 interface Props {
   events: RecurEvent[] | null
+  /** false=游客只读：不显示新增/编辑/删除/启停 */
+  editable?: boolean
   onAdd: () => void
   onEdit: (e: RecurEvent) => void
   onToggle: (e: RecurEvent) => void
@@ -14,7 +16,7 @@ function repeatLabel(weekdays: number[]): string {
   return `每${weekdays.map((w) => `周${weekdayLabel(w)}`).join('、')}`
 }
 
-export default function EventsView({ events, onAdd, onEdit, onToggle, onDelete }: Props) {
+export default function EventsView({ events, editable = true, onAdd, onEdit, onToggle, onDelete }: Props) {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-start justify-between gap-4">
@@ -22,13 +24,15 @@ export default function EventsView({ events, onAdd, onEdit, onToggle, onDelete }
           <h2 className="text-lg font-semibold text-slate-900">周期事件</h2>
           <p className="mt-0.5 text-sm text-slate-500">例会、课程、健身这类固定日程录入一次，系统会自动排入每周时间表，并扣除对应空闲时段。</p>
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          ＋ 新增事件
-        </button>
+        {editable && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            ＋ 新增事件
+          </button>
+        )}
       </div>
 
       {events === null ? (
@@ -38,13 +42,15 @@ export default function EventsView({ events, onAdd, onEdit, onToggle, onDelete }
           <div className="text-3xl">🗓️</div>
           <p className="mt-3 text-sm font-medium text-slate-700">还没有周期事件</p>
           <p className="mt-1 text-sm text-slate-400">添加你的课程、例会、健身等固定安排后，这里会自动生成每周时间表。</p>
-          <button
-            type="button"
-            onClick={onAdd}
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-          >
-            添加第一个事件
-          </button>
+          {editable && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            >
+              添加第一个事件
+            </button>
+          )}
         </div>
       ) : (
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -55,7 +61,9 @@ export default function EventsView({ events, onAdd, onEdit, onToggle, onDelete }
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={`truncate text-sm font-medium ${ev.enabled ? 'text-slate-800' : 'text-slate-400 line-through'}`}>{ev.title}</span>
+                    <span className={`truncate text-sm font-medium ${ev.enabled ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
+                      {ev.title}
+                    </span>
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] ${meta.chip}`}>{meta.label}</span>
                   </div>
                   <div className="mt-0.5 truncate text-xs text-slate-500">
@@ -64,21 +72,25 @@ export default function EventsView({ events, onAdd, onEdit, onToggle, onDelete }
                     {ev.notes && ` · ${ev.notes}`}
                   </div>
                 </div>
-                <Toggle on={ev.enabled} onClick={() => onToggle(ev)} />
-                <button
-                  type="button"
-                  onClick={() => onEdit(ev)}
-                  className="rounded-lg px-2 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-                >
-                  编辑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(ev)}
-                  className="rounded-lg px-2 py-1.5 text-sm text-rose-500 transition hover:bg-rose-50"
-                >
-                  删除
-                </button>
+                {editable && (
+                  <>
+                    <Toggle on={ev.enabled} onClick={() => onToggle(ev)} />
+                    <button
+                      type="button"
+                      onClick={() => onEdit(ev)}
+                      className="rounded-lg px-2 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(ev)}
+                      className="rounded-lg px-2 py-1.5 text-sm text-rose-500 transition hover:bg-rose-50"
+                    >
+                      删除
+                    </button>
+                  </>
+                )}
               </li>
             )
           })}

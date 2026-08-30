@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -57,10 +59,12 @@ type Block struct {
 }
 
 type plannerData struct {
-	Version  int      `json:"version"`
-	Settings Settings `json:"settings"`
-	Events   []*Event `json:"events"`
-	Blocks   []*Block `json:"blocks"`
+	Version      int      `json:"version"`
+	Settings     Settings `json:"settings"`
+	Events       []*Event `json:"events"`
+	Blocks       []*Block `json:"blocks"`
+	PasswordSalt string   `json:"passwordSalt,omitempty"`
+	PasswordHash string   `json:"passwordHash,omitempty"`
 }
 
 var fixedCategories = map[string]bool{"meeting": true, "class": true, "fitness": true, "life": true, "other": true}
@@ -327,6 +331,46 @@ func (s *Store) UpdateSettings(st Settings) (Settings, error) {
 		return Settings{}, err
 	}
 	return s.d.Settings, nil
+}
+
+// ---------- 管理密码 ----------
+
+// hashPassword 计算 sha256(salt + ":" + password) 的十六进制表示。
+// 面向个人/小团队场景的基础防护，避免明文存储即可。
+func hashPassword(salt, password string) string {
+	sum := sha256.Sum256([]byte(salt + ":" + password))
+	return hex.EncodeToString(sum[:])
+}
+
+// HasPassword 是否已设置管理密码。
+func (s *Store) HasPassword() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.d.PasswordHash != ""
+}
+
+// VerifyPassword 校验管理密码；未设置密码时返回 false。
+func (s *Store) VerifyPassword(password string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.d.PasswordHash == "" {
+		return false
+	}
+	got := hashPassword(s.d.PasswordSalt, password)
+	return subtle.ConstantTimeCompare([]byte(got), []byte(s.d.PasswordHash)) == 1
+}
+
+// SetPassword 设置（或重置）管理密码。
+func (s *Store) SetPassword(password string) error {
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		return fmt.Errorf("生成随机盐失败: %w", err)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.d.PasswordSalt = hex.EncodeToString(salt)
+	s.d.PasswordHash = hashPassword(s.d.PasswordSalt, password)
+	return s.saveLocked()
 }
 
 // ---------- 校验与冲突 ----------

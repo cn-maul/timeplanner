@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Block, Occurrence, RecurEvent, Settings, WeekData } from './types'
-import { api } from './api'
+import { api, getAdminPassword, setAdminPassword } from './api'
 import { addDays, dateLabel, fmtDate, fmtDur, hhmm, mm, parseDate, todayStr, weekRangeLabel } from './util'
 import { BLOCK_CATEGORY_KEYS, BLOCK_CATEGORIES } from './constants'
 import WeekGrid from './components/WeekGrid'
@@ -9,6 +9,8 @@ import EventsView from './components/EventsView'
 import EventDialog from './components/EventDialog'
 import BlockDialog from './components/BlockDialog'
 import SettingsDialog from './components/SettingsDialog'
+import LoginDialog from './components/LoginDialog'
+import PasswordDialog from './components/PasswordDialog'
 
 type View = 'week' | 'day' | 'events'
 type Toast = { id: number; type: 'ok' | 'err'; text: string }
@@ -24,6 +26,10 @@ export default function App() {
   const [blockModal, setBlockModal] = useState<{ block?: Block; date?: string; start?: string; end?: string } | null>(null)
   const [eventModal, setEventModal] = useState<{ event?: RecurEvent } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [passwordSet, setPasswordSet] = useState<boolean | null>(null)
+  const [admin, setAdmin] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
 
   const toast = useCallback((text: string, type: 'ok' | 'err' = 'ok') => {
@@ -54,6 +60,45 @@ export default function App() {
   useEffect(() => {
     void refreshEvents()
   }, [refreshEvents])
+
+  // 启动时获取密码状态，并校验本地保存的管理密码是否仍有效
+  useEffect(() => {
+    void (async () => {
+      try {
+        const info = await api.settings()
+        setPasswordSet(info.passwordSet)
+        const stored = getAdminPassword()
+        if (info.passwordSet && stored) {
+          try {
+            await api.login(stored)
+            setAdmin(true)
+          } catch {
+            setAdminPassword('')
+            toast('本地保存的管理密码已失效，请重新登录', 'err')
+          }
+        }
+      } catch (e) {
+        setPasswordSet(false)
+        toast(errText(e), 'err')
+      }
+    })()
+  }, [toast])
+
+  /** 未设置密码时人人可编辑；设置后需要登录 */
+  const isAdmin = admin || passwordSet === false
+
+  const logout = () => {
+    setAdminPassword('')
+    setAdmin(false)
+    toast('已退出管理员模式')
+  }
+
+  const onPasswordSaved = () => {
+    setPasswordSet(true)
+    setAdmin(true)
+    setPasswordDialogOpen(false)
+    toast('管理密码已保存，修改操作需要密码')
+  }
 
   // 页面加载/切换视图后自动滚动到当前时间附近
   useEffect(() => {
@@ -217,17 +262,57 @@ export default function App() {
                 </span>
               </>
             )}
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              title="设置"
-              className="ml-1 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
+            {passwordSet === true && !admin && (
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+              >
+                管理员登录
+              </button>
+            )}
+            {passwordSet === true && admin && (
+              <>
+                <span className="mr-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">管理员</span>
+                <button
+                  type="button"
+                  onClick={() => setPasswordDialogOpen(true)}
+                  className="rounded-lg px-2.5 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+                >
+                  修改密码
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-lg px-2.5 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+                >
+                  退出
+                </button>
+              </>
+            )}
+            {passwordSet === false && (
+              <button
+                type="button"
+                onClick={() => setPasswordDialogOpen(true)}
+                title="设置管理密码后，其他访问者将只能查看"
+                className="rounded-lg px-3 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100"
+              >
+                设置密码
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                title="设置"
+                className="ml-1 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -236,6 +321,7 @@ export default function App() {
         {view === 'week' && week && (
           <WeekSection
             week={week}
+            editable={isAdmin}
             onCreateIn={openCreate}
             onEditBlock={editBlock}
             onEditEvent={editEvent}
@@ -247,11 +333,12 @@ export default function App() {
           />
         )}
         {view === 'day' && week && day && (
-          <DayView day={day} settings={week.settings} onCreateIn={openCreate} onEditBlock={editBlock} onEditEvent={editEvent} />
+          <DayView day={day} settings={week.settings} editable={isAdmin} onCreateIn={openCreate} onEditBlock={editBlock} onEditEvent={editEvent} />
         )}
         {view === 'events' && (
           <EventsView
             events={events}
+            editable={isAdmin}
             onAdd={() => setEventModal({})}
             onEdit={(ev) => setEventModal({ event: ev })}
             onToggle={(ev) => void toggleEvent(ev)}
@@ -278,6 +365,19 @@ export default function App() {
         />
       )}
       {settingsOpen && week && <SettingsDialog initial={week.settings} onClose={() => setSettingsOpen(false)} onSave={saveSettings} />}
+      {loginOpen && (
+        <LoginDialog
+          onClose={() => setLoginOpen(false)}
+          onSuccess={() => {
+            setLoginOpen(false)
+            setAdmin(true)
+            toast('已进入管理员模式')
+          }}
+        />
+      )}
+      {passwordDialogOpen && (
+        <PasswordDialog mode={passwordSet ? 'change' : 'set'} onClose={() => setPasswordDialogOpen(false)} onSaved={onPasswordSaved} />
+      )}
 
       <div className="pointer-events-none fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 flex-col items-center gap-2">
         {toasts.map((t) => (
@@ -292,6 +392,8 @@ export default function App() {
 
 interface WeekSectionProps {
   week: WeekData
+  /** false=游客只读：空闲格不可点击、隐藏引导按钮 */
+  editable: boolean
   onCreateIn: (date: string, start: number, end: number) => void
   onEditBlock: (b: Block) => void
   onEditEvent: (occ: Occurrence) => void
@@ -299,11 +401,11 @@ interface WeekSectionProps {
   onGoEvents: () => void
 }
 
-function WeekSection({ week, onCreateIn, onEditBlock, onEditEvent, onOpenDay, onGoEvents }: WeekSectionProps) {
+function WeekSection({ week, editable, onCreateIn, onEditBlock, onEditEvent, onOpenDay, onGoEvents }: WeekSectionProps) {
   const s = week.stats
   return (
     <div>
-      {week.eventCount === 0 && (
+      {week.eventCount === 0 && editable && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <span>你还没有录入周期事件，整周时间都会被视为空闲。先添加课程、例会等固定安排吧。</span>
           <button type="button" onClick={onGoEvents} className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-500">
@@ -330,7 +432,14 @@ function WeekSection({ week, onCreateIn, onEditBlock, onEditEvent, onOpenDay, on
         ))}
       </div>
 
-      <WeekGrid days={week.days} settings={week.settings} onCreateIn={onCreateIn} onEditBlock={onEditBlock} onEditEvent={onEditEvent} onOpenDay={onOpenDay} />
+      <WeekGrid
+        days={week.days}
+        settings={week.settings}
+        onCreateIn={editable ? onCreateIn : undefined}
+        onEditBlock={editable ? onEditBlock : undefined}
+        onEditEvent={editable ? onEditEvent : undefined}
+        onOpenDay={onOpenDay}
+      />
     </div>
   )
 }

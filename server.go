@@ -13,6 +13,18 @@ import (
 	"timeplanner/web"
 )
 
+// requireAdmin 设置了管理密码时，要求请求携带正确的 X-Admin-Password 请求头；
+// 未设置密码时放行（本机单人使用场景保持原有体验）。
+func requireAdmin(store *Store, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !store.HasPassword() || store.VerifyPassword(r.Header.Get("X-Admin-Password")) {
+			next(w, r)
+			return
+		}
+		fail(w, http.StatusUnauthorized, errors.New("需要管理密码（X-Admin-Password 请求头），游客仅有查看权限"))
+	}
+}
+
 // NewRouter 组装 API 与静态资源路由。
 func NewRouter(store *Store) http.Handler {
 	mux := http.NewServeMux()
@@ -30,7 +42,7 @@ func NewRouter(store *Store) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]any{"events": store.ListEvents()})
 	})
 
-	mux.HandleFunc("POST /api/events", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/events", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		var e Event
 		if err := readJSON(w, r, &e); err != nil {
 			fail(w, http.StatusBadRequest, err)
@@ -42,9 +54,9 @@ func NewRouter(store *Store) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
-	})
+	}))
 
-	mux.HandleFunc("PUT /api/events/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("PUT /api/events/{id}", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		var e Event
 		if err := readJSON(w, r, &e); err != nil {
 			fail(w, http.StatusBadRequest, err)
@@ -56,17 +68,17 @@ func NewRouter(store *Store) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
-	})
+	}))
 
-	mux.HandleFunc("DELETE /api/events/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("DELETE /api/events/{id}", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		if err := store.DeleteEvent(r.PathValue("id")); err != nil {
 			failStore(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-	})
+	}))
 
-	mux.HandleFunc("POST /api/blocks", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/blocks", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		var b Block
 		if err := readJSON(w, r, &b); err != nil {
 			fail(w, http.StatusBadRequest, err)
@@ -78,9 +90,9 @@ func NewRouter(store *Store) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusCreated, created)
-	})
+	}))
 
-	mux.HandleFunc("PUT /api/blocks/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("PUT /api/blocks/{id}", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		var b Block
 		if err := readJSON(w, r, &b); err != nil {
 			fail(w, http.StatusBadRequest, err)
@@ -92,21 +104,26 @@ func NewRouter(store *Store) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
-	})
+	}))
 
-	mux.HandleFunc("DELETE /api/blocks/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("DELETE /api/blocks/{id}", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		if err := store.DeleteBlock(r.PathValue("id")); err != nil {
 			failStore(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-	})
+	}))
 
 	mux.HandleFunc("GET /api/settings", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, store.GetSettings())
+		st := store.GetSettings()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"dayStart":    st.DayStart,
+			"dayEnd":      st.DayEnd,
+			"passwordSet": store.HasPassword(),
+		})
 	})
 
-	mux.HandleFunc("PUT /api/settings", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("PUT /api/settings", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
 		var st Settings
 		if err := readJSON(w, r, &st); err != nil {
 			fail(w, http.StatusBadRequest, err)
@@ -118,7 +135,47 @@ func NewRouter(store *Store) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusOK, saved)
+	}))
+
+	// 登录校验：供前端验证已保存的密码；未设置密码时始终成功。
+	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Password string `json:"password"`
+		}
+		if err := readJSON(w, r, &body); err != nil {
+			fail(w, http.StatusBadRequest, err)
+			return
+		}
+		if store.HasPassword() && !store.VerifyPassword(body.Password) {
+			fail(w, http.StatusUnauthorized, errors.New("管理密码不正确"))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	})
+
+	// 设置/修改管理密码：已设置密码时需先通过管理鉴权（X-Admin-Password 携带当前密码）。
+	mux.Handle("POST /api/password", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Next string `json:"next"`
+		}
+		if err := readJSON(w, r, &body); err != nil {
+			fail(w, http.StatusBadRequest, err)
+			return
+		}
+		if body.Next == "" {
+			fail(w, http.StatusBadRequest, errors.New("新密码不能为空"))
+			return
+		}
+		if len(body.Next) > 128 {
+			fail(w, http.StatusBadRequest, errors.New("密码不能超过 128 字符"))
+			return
+		}
+		if err := store.SetPassword(body.Next); err != nil {
+			fail(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	}))
 
 	mux.HandleFunc("/", handleStatic)
 	return withRecover(mux)
