@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Block, Occurrence, RecurEvent, Settings, WeekData } from './types'
-import { api, getAdminPassword, setAdminPassword } from './api'
+import type { Block, Occurrence, RecurEvent, WeekData } from './types'
+import { api, getAdminPassword, setAdminPassword, type SettingsInfo } from './api'
 import { addDays, dateLabel, fmtDate, fmtDur, hhmm, mm, parseDate, todayStr, weekRangeLabel } from './util'
 import { BLOCK_CATEGORY_KEYS, BLOCK_CATEGORIES } from './constants'
 import WeekGrid from './components/WeekGrid'
@@ -8,7 +8,7 @@ import DayView from './components/DayView'
 import EventsView from './components/EventsView'
 import EventDialog from './components/EventDialog'
 import BlockDialog from './components/BlockDialog'
-import SettingsDialog from './components/SettingsDialog'
+import SettingsDialog, { type SettingsPayload } from './components/SettingsDialog'
 import LoginDialog from './components/LoginDialog'
 import PasswordDialog from './components/PasswordDialog'
 
@@ -27,6 +27,7 @@ export default function App() {
   const [eventModal, setEventModal] = useState<{ event?: RecurEvent } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [passwordSet, setPasswordSet] = useState<boolean | null>(null)
+  const [settingsInfo, setSettingsInfo] = useState<SettingsInfo | null>(null)
   const [admin, setAdmin] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
@@ -66,6 +67,7 @@ export default function App() {
     void (async () => {
       try {
         const info = await api.settings()
+        setSettingsInfo(info)
         setPasswordSet(info.passwordSet)
         const stored = getAdminPassword()
         if (info.passwordSet && stored) {
@@ -192,10 +194,12 @@ export default function App() {
     }
   }
 
-  const saveSettings = async (s: Settings) => {
-    await api.updateSettings(s)
+  const saveSettings = async (payload: SettingsPayload) => {
+    await api.updateSettings(payload)
+    const info = await api.settings()
+    setSettingsInfo(info)
     setSettingsOpen(false)
-    toast('设置已保存')
+    toast(info.ticketUrl ? '设置已保存（工单集成已启用）' : '设置已保存')
     await refreshWeek()
   }
 
@@ -351,6 +355,7 @@ export default function App() {
       {blockModal && (
         <BlockDialog
           initial={blockModal}
+          ticketsEnabled={!!settingsInfo?.ticketUrl}
           onClose={() => setBlockModal(null)}
           onSave={saveBlock}
           onDelete={blockModal.block ? deleteBlock : undefined}
@@ -364,7 +369,21 @@ export default function App() {
           onDelete={eventModal.event ? deleteEvent : undefined}
         />
       )}
-      {settingsOpen && week && <SettingsDialog initial={week.settings} onClose={() => setSettingsOpen(false)} onSave={saveSettings} />}
+      {settingsOpen && week && (
+        <SettingsDialog
+          initial={
+            settingsInfo ?? {
+              dayStart: week.settings.dayStart,
+              dayEnd: week.settings.dayEnd,
+              passwordSet: false,
+              ticketUrl: '',
+              ticketKeySet: false,
+            }
+          }
+          onClose={() => setSettingsOpen(false)}
+          onSave={saveSettings}
+        />
+      )}
       {loginOpen && (
         <LoginDialog
           onClose={() => setLoginOpen(false)}

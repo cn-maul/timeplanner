@@ -116,25 +116,78 @@ func NewRouter(store *Store) http.Handler {
 
 	mux.HandleFunc("GET /api/settings", func(w http.ResponseWriter, r *http.Request) {
 		st := store.GetSettings()
+		in := store.GetIntegration()
 		writeJSON(w, http.StatusOK, map[string]any{
-			"dayStart":    st.DayStart,
-			"dayEnd":      st.DayEnd,
-			"passwordSet": store.HasPassword(),
+			"dayStart":     st.DayStart,
+			"dayEnd":       st.DayEnd,
+			"passwordSet":  store.HasPassword(),
+			"ticketUrl":    in.TicketURL,
+			"ticketKeySet": in.TicketKey != "",
 		})
 	})
 
 	mux.Handle("PUT /api/settings", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
-		var st Settings
-		if err := readJSON(w, r, &st); err != nil {
+		var body struct {
+			Settings
+			Integration *IntegrationUpdate `json:"integration"`
+		}
+		if err := readJSON(w, r, &body); err != nil {
 			fail(w, http.StatusBadRequest, err)
 			return
 		}
-		saved, err := store.UpdateSettings(st)
+		saved, err := store.UpdateSettings(body.Settings)
 		if err != nil {
 			fail(w, http.StatusBadRequest, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, saved)
+		if body.Integration != nil {
+			if err := store.UpdateIntegration(*body.Integration); err != nil {
+				fail(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+		in := store.GetIntegration()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"dayStart":     saved.DayStart,
+			"dayEnd":       saved.DayEnd,
+			"ticketUrl":    in.TicketURL,
+			"ticketKeySet": in.TicketKey != "",
+		})
+	}))
+
+	// 工单系统集成：拉取 tix 待处理工单（供新建安排时自动填入名称）
+	mux.Handle("GET /api/integration/tickets", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
+		items, total, err := store.PendingTickets()
+		if err != nil {
+			failTicket(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total})
+	}))
+
+	mux.Handle("POST /api/integration/tickets/test", requireAdmin(store, func(w http.ResponseWriter, r *http.Request) {
+		// 请求体可选：携带表单值时测试表单配置（ticketKey 省略则回退已存 Key），否则测试已保存配置
+		var body IntegrationUpdate
+		if r.ContentLength != 0 {
+			if err := readJSON(w, r, &body); err != nil {
+				fail(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+		integ := store.GetIntegration()
+		if body.TicketURL != "" || body.TicketKey != nil {
+			key := integ.TicketKey
+			if body.TicketKey != nil {
+				key = *body.TicketKey
+			}
+			integ = Integration{TicketURL: body.TicketURL, TicketKey: key}
+		}
+		total, err := store.TestTicketIntegrationCfg(integ)
+		if err != nil {
+			failTicket(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "pending": total})
 	}))
 
 	// 登录校验：供前端验证已保存的密码；未设置密码时始终成功。
@@ -192,6 +245,15 @@ func failStore(w http.ResponseWriter, err error) {
 		return
 	}
 	fail(w, http.StatusBadRequest, err)
+}
+
+// failTicket 工单集成相关错误：未配置为 400，其余（上游不可达/凭据错误等）为 502。
+func failTicket(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrTicketNotConfigured) {
+		fail(w, http.StatusBadRequest, err)
+		return
+	}
+	fail(w, http.StatusBadGateway, err)
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

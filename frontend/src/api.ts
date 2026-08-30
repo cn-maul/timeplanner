@@ -1,7 +1,9 @@
-import type { Block, RecurEvent, Settings, WeekData } from './types'
+import type { Block, IntegrationUpdate, PendingTicket, RecurEvent, Settings, WeekData } from './types'
 
 export interface SettingsInfo extends Settings {
   passwordSet: boolean
+  ticketUrl: string
+  ticketKeySet: boolean
 }
 
 // ---------- 管理密码的本地保存 ----------
@@ -43,12 +45,14 @@ async function unwrap<T>(res: Response): Promise<T> {
   return body as T
 }
 
-const get = <T,>(url: string) => fetch(url).then((r) => unwrap<T>(r))
+function adminHeader(): Record<string, string> {
+  return adminPassword ? { 'X-Admin-Password': adminPassword } : {}
+}
+
+const get = <T,>(url: string) => fetch(url, { headers: adminHeader() }).then((r) => unwrap<T>(r))
 
 function sendHeaders(): Record<string, string> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (adminPassword) h['X-Admin-Password'] = adminPassword
-  return h
+  return { 'Content-Type': 'application/json', ...adminHeader() }
 }
 
 const send = <T,>(method: string, url: string, data?: unknown) =>
@@ -70,5 +74,7 @@ export const api = {
   createBlock: (b: Partial<Block>) => send<Block>('POST', '/api/blocks', b),
   updateBlock: (id: string, b: Partial<Block>) => send<Block>('PUT', `/api/blocks/${id}`, b),
   deleteBlock: (id: string) => send<{ ok: boolean }>('DELETE', `/api/blocks/${id}`),
-  updateSettings: (s: Settings) => send<Settings>('PUT', '/api/settings', s),
+  updateSettings: (s: Settings & { integration?: IntegrationUpdate }) => send<Settings>('PUT', '/api/settings', s),
+  ticketsPending: () => get<{ items: PendingTicket[]; total: number }>('/api/integration/tickets'),
+  ticketsTest: (form?: IntegrationUpdate) => send<{ ok: boolean; pending: number }>('POST', '/api/integration/tickets/test', form ?? {}),
 }

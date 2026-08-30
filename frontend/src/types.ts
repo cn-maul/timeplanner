@@ -79,3 +79,19 @@ export interface WeekData {
   days: DayData[]
   stats: WeekStats
 }
+
+/** tix 待处理工单（服务端代理获取的精简视图） */
+export interface PendingTicket {
+  id: number
+  category: string
+  content: string
+  creator: string
+  assignee: string
+  createdAt: string
+}
+
+/** 工单系统集成配置的部分更新；ticketKey 省略=保持不变，空串=清除 */
+export interface IntegrationUpdate {
+  ticketUrl: string
+  ticketKey?: string
+}

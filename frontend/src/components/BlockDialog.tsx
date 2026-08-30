@@ -1,18 +1,21 @@
-import { useState } from 'react'
-import type { Block, BlockCategory } from '../types'
+import { useEffect, useState } from 'react'
+import type { Block, BlockCategory, PendingTicket } from '../types'
 import { BLOCK_CATEGORIES, BLOCK_CATEGORY_KEYS } from '../constants'
+import { api } from '../api'
 import { mm } from '../util'
 import { ErrorText, Field, Modal, inputCls } from './ui'
 
 interface Props {
   /** 编辑时传入已有安排；新建时传入预填的日期与时段 */
   initial: { block?: Block; date?: string; start?: string; end?: string }
+  /** 已配置工单系统集成时，展示“从工单导入”选择器 */
+  ticketsEnabled?: boolean
   onClose: () => void
   onSave: (values: Omit<Block, 'id'>) => Promise<void>
   onDelete?: () => Promise<void>
 }
 
-export default function BlockDialog({ initial, onClose, onSave, onDelete }: Props) {
+export default function BlockDialog({ initial, ticketsEnabled = false, onClose, onSave, onDelete }: Props) {
   const b = initial.block
   const [title, setTitle] = useState(b?.title ?? '')
   const [category, setCategory] = useState<BlockCategory>(b?.category ?? 'work')
@@ -22,6 +25,34 @@ export default function BlockDialog({ initial, onClose, onSave, onDelete }: Prop
   const [notes, setNotes] = useState(b?.notes ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  const [tickets, setTickets] = useState<PendingTicket[] | null>(null)
+  const [ticketErr, setTicketErr] = useState('')
+  const [ticketSel, setTicketSel] = useState('')
+
+  useEffect(() => {
+    if (!ticketsEnabled) return
+    let alive = true
+    api
+      .ticketsPending()
+      .then((r) => {
+        if (alive) setTickets(r.items)
+      })
+      .catch((e) => {
+        if (alive) setTicketErr(e instanceof Error ? e.message : String(e))
+      })
+    return () => {
+      alive = false
+    }
+  }, [ticketsEnabled])
+
+  const pickTicket = (v: string) => {
+    setTicketSel(v)
+    const t = tickets?.find((x) => String(x.id) === v)
+    if (!t) return
+    setTitle(t.content)
+    setNotes((prev) => (prev ? prev : `工单 #${t.id} · ${t.category}${t.creator ? ` · ${t.creator}` : ''}`))
+  }
 
   const submit = async () => {
     if (!date) {
@@ -51,6 +82,27 @@ export default function BlockDialog({ initial, onClose, onSave, onDelete }: Prop
           void submit()
         }}
       >
+        {ticketsEnabled && (
+          <Field label="从工单导入" hint={ticketErr ? `工单列表获取失败：${ticketErr}` : undefined}>
+            <select className={inputCls} value={ticketSel} onChange={(e) => pickTicket(e.target.value)}>
+              <option value="">
+                {tickets === null
+                  ? ticketErr
+                    ? '获取工单列表失败'
+                    : '加载工单中…'
+                  : tickets.length > 0
+                    ? '— 选择待处理工单，自动填入名称 —'
+                    : 'tix 暂无待处理工单'}
+              </option>
+              {(tickets ?? []).map((t) => (
+                <option key={t.id} value={String(t.id)}>
+                  #{t.id} [{t.category}] {t.content}（{t.creator}）
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
         <Field label="名称" hint="留空时显示分类名称">
           <input
             className={inputCls}

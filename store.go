@@ -58,13 +58,27 @@ type Block struct {
 	Notes    string `json:"notes,omitempty"`
 }
 
+// Integration 外部系统集成配置（当前为 tix 工单系统）。TicketKey 属敏感信息，
+// 任何对外接口都不得原样下发。
+type Integration struct {
+	TicketURL string `json:"ticketUrl"`
+	TicketKey string `json:"ticketKey"`
+}
+
+// IntegrationUpdate 集成配置的部分更新：TicketKey 为 nil 表示保持不变，空串表示清除。
+type IntegrationUpdate struct {
+	TicketURL string  `json:"ticketUrl"`
+	TicketKey *string `json:"ticketKey"`
+}
+
 type plannerData struct {
-	Version      int      `json:"version"`
-	Settings     Settings `json:"settings"`
-	Events       []*Event `json:"events"`
-	Blocks       []*Block `json:"blocks"`
-	PasswordSalt string   `json:"passwordSalt,omitempty"`
-	PasswordHash string   `json:"passwordHash,omitempty"`
+	Version      int         `json:"version"`
+	Settings     Settings    `json:"settings"`
+	Events       []*Event    `json:"events"`
+	Blocks       []*Block    `json:"blocks"`
+	PasswordSalt string      `json:"passwordSalt,omitempty"`
+	PasswordHash string      `json:"passwordHash,omitempty"`
+	Integration  Integration `json:"integration"`
 }
 
 var fixedCategories = map[string]bool{"meeting": true, "class": true, "fitness": true, "life": true, "other": true}
@@ -371,6 +385,39 @@ func (s *Store) SetPassword(password string) error {
 	s.d.PasswordSalt = hex.EncodeToString(salt)
 	s.d.PasswordHash = hashPassword(s.d.PasswordSalt, password)
 	return s.saveLocked()
+}
+
+// ---------- 外部集成（tix 工单系统） ----------
+
+// GetIntegration 返回集成配置；调用方不得将 TicketPass 原样下发给客户端。
+func (s *Store) GetIntegration() Integration {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.d.Integration
+}
+
+// UpdateIntegration 更新集成配置；TicketKey 为 nil 表示保持不变。
+func (s *Store) UpdateIntegration(in IntegrationUpdate) error {
+	rawURL := strings.TrimSpace(in.TicketURL)
+	if rawURL != "" && !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		return errors.New("工单系统地址必须以 http:// 或 https:// 开头")
+	}
+	rawURL = strings.TrimRight(rawURL, "/")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := s.d.Integration.TicketKey
+	if in.TicketKey != nil {
+		key = *in.TicketKey
+	}
+	s.d.Integration = Integration{TicketURL: rawURL, TicketKey: key}
+	return s.saveLocked()
+}
+
+// HasTicketIntegration 是否已配置工单系统地址。
+func (s *Store) HasTicketIntegration() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.d.Integration.TicketURL != ""
 }
 
 // ---------- 校验与冲突 ----------
