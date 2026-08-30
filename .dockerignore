@@ -1,0 +1,12 @@
+# 控制构建上下文大小与内容，保持 web/dist（其中的占位 index.html 是 go:embed 所需，
+# 构建阶段会被前端产物覆盖）
+.git
+.github
+docs
+frontend/node_modules
+*.exe
+*.md
+planner-data.json
+planner-data.json.tmp
+demo.json
+smoke.json
