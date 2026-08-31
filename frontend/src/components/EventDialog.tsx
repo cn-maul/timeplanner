@@ -2,13 +2,13 @@ import { useState } from 'react'
 import type { EventCategory, RecurEvent } from '../types'
 import { EVENT_CATEGORIES, EVENT_CATEGORY_KEYS, WEEKDAY_LABELS } from '../constants'
 import { mm } from '../util'
-import { ErrorText, Field, Modal, inputCls } from './ui'
+import { ErrorText, Field, Modal, btnDangerGhost, btnGhost, btnPrimary, inputCls } from './ui'
 
 interface Props {
   initial?: RecurEvent | null
   onClose: () => void
   onSave: (values: Omit<RecurEvent, 'id'>) => Promise<void>
-  onDelete?: () => Promise<void>
+  onDelete?: () => void
 }
 
 export default function EventDialog({ initial, onClose, onSave, onDelete }: Props) {
@@ -101,7 +101,7 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
                   type="button"
                   onClick={() => toggleDay(w)}
                   className={`h-9 w-9 rounded-full border text-sm transition ${
-                    on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'
+                    on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'
                   }`}
                 >
                   {label}
@@ -138,7 +138,7 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
             type="checkbox"
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+            className="h-4 w-4 rounded border-slate-300 accent-brand-600"
           />
           启用（停用后不再计入时间表）
         </label>
@@ -147,19 +147,15 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
 
         <div className="flex items-center gap-2 pt-1">
           {onDelete && (
-            <button type="button" onClick={() => void onDelete()} className="rounded-lg px-3 py-2 text-sm text-rose-600 transition hover:bg-rose-50">
+            <button type="button" onClick={onDelete} className={btnDangerGhost}>
               删除
             </button>
           )}
           <div className="flex-1" />
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">
+          <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
-          >
+          <button type="submit" disabled={busy} className={btnPrimary}>
             保存
           </button>
         </div>

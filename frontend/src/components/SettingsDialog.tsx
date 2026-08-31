@@ -3,7 +3,7 @@ import type { IntegrationUpdate, Settings } from '../types'
 import type { SettingsInfo } from '../api'
 import { api } from '../api'
 import { mm } from '../util'
-import { ErrorText, Field, Modal, inputCls } from './ui'
+import { ErrorText, Field, Modal, btnGhost, btnOutline, btnPrimary, inputCls } from './ui'
 
 function buildOptions(fromMin: number, toMin: number): string[] {
   const out: string[] = []
@@ -125,12 +125,7 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
             />
           </Field>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void testConnection()}
-              disabled={testing}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:border-slate-400 disabled:opacity-50"
-            >
+            <button type="button" onClick={() => void testConnection()} disabled={testing} className={btnOutline}>
               {testing ? '测试中…' : '测试连接'}
             </button>
             {testOk && <span className="text-sm text-emerald-600">{testOk}</span>}
@@ -141,14 +136,10 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
         <ErrorText text={error} />
 
         <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">
+          <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>
-          <button
-            type="button"
-            onClick={() => void submit()}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
+          <button type="button" onClick={() => void submit()} className={btnPrimary}>
             保存
           </button>
         </div>

@@ -3,7 +3,7 @@ import type { Block, BlockCategory, PendingTicket } from '../types'
 import { BLOCK_CATEGORIES, BLOCK_CATEGORY_KEYS } from '../constants'
 import { api } from '../api'
 import { mm } from '../util'
-import { ErrorText, Field, Modal, inputCls } from './ui'
+import { ErrorText, Field, Modal, btnDangerGhost, btnGhost, btnPrimary, inputCls } from './ui'
 
 interface Props {
   /** 编辑时传入已有安排；新建时传入预填的日期与时段 */
@@ -12,7 +12,7 @@ interface Props {
   ticketsEnabled?: boolean
   onClose: () => void
   onSave: (values: Omit<Block, 'id'>) => Promise<void>
-  onDelete?: () => Promise<void>
+  onDelete?: () => void
 }
 
 export default function BlockDialog({ initial, ticketsEnabled = false, onClose, onSave, onDelete }: Props) {
@@ -150,19 +150,15 @@ export default function BlockDialog({ initial, ticketsEnabled = false, onClose, 
 
         <div className="flex items-center gap-2 pt-1">
           {onDelete && (
-            <button type="button" onClick={() => void onDelete()} className="rounded-lg px-3 py-2 text-sm text-rose-600 transition hover:bg-rose-50">
+            <button type="button" onClick={onDelete} className={btnDangerGhost}>
               删除
             </button>
           )}
           <div className="flex-1" />
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">
+          <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-          >
+          <button type="submit" disabled={busy} className={btnPrimary}>
             保存
           </button>
         </div>

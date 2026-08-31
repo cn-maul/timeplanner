@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from 'react'
 import type { Block, DayData, Occurrence, Settings } from '../types'
 import { BLOCK_CATEGORIES, EVENT_CATEGORIES, weekdayLabel } from '../constants'
-import { mm, shortDate } from '../util'
+import { hhmm, mm, shortDate } from '../util'
 
 interface Props {
   days: DayData[]
@@ -71,8 +71,8 @@ export default function WeekGrid({ days, settings, rowHeight = 52, onCreateIn, o
   }, [startMin, endMin])
 
   return (
-    <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="w-14 shrink-0 border-r border-slate-200">
+    <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+      <div className="w-14 shrink-0">
         <div className="h-10 border-b border-slate-200" />
         <div className="relative" style={{ height: totalH }}>
           {labelHours.map((h) => (
@@ -128,11 +128,16 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
   }, [day])
 
   const hourLines: CSSProperties = {
-    backgroundImage: `repeating-linear-gradient(to bottom, #e2e8f0 0px, #e2e8f0 1px, transparent 1px, transparent ${rowHeight}px)`,
+    backgroundImage: `repeating-linear-gradient(to bottom, #f1f5f9 0px, #f1f5f9 1px, transparent 1px, transparent ${rowHeight}px)`,
+    backgroundColor: day.isToday
+      ? 'rgb(238 242 255 / 0.5)'
+      : day.weekday >= 6
+        ? '#f8fafc'
+        : undefined,
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex min-w-0 flex-1 flex-col border-l border-slate-100">
       <button
         type="button"
         onClick={() => onOpenDay?.(day.date)}
@@ -140,28 +145,34 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
         title="查看这一天的日计划"
       >
         <span className="text-[11px] text-slate-400">周{weekdayLabel(day.weekday)}</span>
-        <span className={`text-sm font-semibold tabular-nums ${day.isToday ? 'rounded-md bg-indigo-600 px-1.5 py-0.5 text-white' : 'text-slate-700'}`}>
+        <span className={`text-sm font-semibold tabular-nums ${day.isToday ? 'rounded-md bg-brand-600 px-1.5 py-0.5 text-white' : 'text-slate-700'}`}>
           {shortDate(day.date)}
         </span>
       </button>
       <div className="relative flex-1" style={{ height: totalH, ...hourLines }}>
-        {/* 空闲时段（管理员可点击安排，游客仅展示） */}
+        {/* 空闲时段（管理员可点击安排，游客仅展示）：平时弱化为留白，悬停时浮现可点状态 */}
         {day.free.map((f) => {
           const top = ((mm(f.start) - startMin) / 60) * rowHeight
           const h = Math.max(14, ((mm(f.end) - mm(f.start)) / 60) * rowHeight - 2)
-          const cls = `group absolute inset-x-1 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 ${
-            onCreateIn ? 'cursor-pointer transition-colors hover:border-indigo-300 hover:bg-indigo-50/80' : ''
+          const cls = `group absolute inset-x-1 rounded-lg border border-dashed ${
+            onCreateIn
+              ? 'cursor-pointer border-transparent transition-colors hover:border-brand-400 hover:bg-brand-50/80'
+              : 'border-slate-200/60'
           }`
           const style = { top: top + 1, height: h }
           const label = (
             <>
               {h > 44 && (
-                <span className="pointer-events-none absolute inset-x-0 top-1.5 text-center text-[11px] tabular-nums text-slate-400 opacity-70 group-hover:opacity-100">
+                <span
+                  className={`pointer-events-none absolute inset-x-0 top-1.5 text-center text-[11px] tabular-nums transition-colors ${
+                    onCreateIn ? 'text-slate-300 group-hover:text-brand-500' : 'text-slate-300'
+                  }`}
+                >
                   {f.start}–{f.end}
                 </span>
               )}
               {h > 72 && onCreateIn && (
-                <span className="pointer-events-none absolute inset-0 m-auto flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 opacity-0 shadow-sm ring-1 ring-slate-200 transition-opacity group-hover:opacity-100">
+                <span className="pointer-events-none absolute inset-0 m-auto flex h-6 w-6 scale-90 items-center justify-center rounded-full bg-white text-brand-500 opacity-0 shadow-sm ring-1 ring-brand-200 transition-all group-hover:scale-100 group-hover:opacity-100">
                   ＋
                 </span>
               )}
@@ -209,9 +220,9 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
                 if (onClick && ev.key === 'Enter') onClick()
               }}
               title={`${title} ${t0}–${t1}${onClick ? `（点击${isEvent ? '编辑事件' : '编辑安排'}）` : ''}`}
-              className={`absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 shadow-sm ${
-                onClick ? 'cursor-pointer transition hover:brightness-95' : 'cursor-default'
-              } ${isEvent ? meta.solid : meta.soft}`}
+              className={`absolute z-10 overflow-hidden rounded-lg px-2 py-1 shadow-xs ring-1 ring-slate-900/5 ${
+                onClick ? 'cursor-pointer transition hover:-translate-y-px hover:shadow-sm' : 'cursor-default'
+              } ${meta.cell}`}
               style={{
                 top: top + 1,
                 height: h,
@@ -219,18 +230,22 @@ function DayColumn({ day, startMin, endMin, rowHeight, totalH, nowMins, onCreate
                 width: `calc(${width}% - 6px)`,
               }}
             >
-              <div className="truncate text-[11px] font-medium leading-tight">{title}</div>
+              <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
               {h >= 40 && <div className="truncate text-[10px] leading-tight opacity-75 tabular-nums">{t0}–{t1}</div>}
             </div>
           )
         })}
 
-        {/* 当前时间指示线 */}
+        {/* 当前时间指示线：脉冲圆点 + 渐隐线 + 右侧时间标签 */}
         {day.isToday && nowMins !== null && (
           <div className="pointer-events-none absolute inset-x-0 z-20" style={{ top: ((nowMins - startMin) / 60) * rowHeight }}>
             <div className="flex items-center">
-              <span className="-ml-1 h-2 w-2 rounded-full bg-rose-500" />
-              <span className="h-px flex-1 bg-rose-500/70" />
+              <span className="relative -ml-1 flex h-2 w-2 items-center">
+                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+              </span>
+              <span className="h-px flex-1 bg-gradient-to-r from-rose-500/70 to-rose-500/20" />
+              <span className="rounded bg-rose-500 px-1 py-px text-[9px] font-medium leading-3.5 text-white tabular-nums">{hhmm(nowMins)}</span>
             </div>
           </div>
         )}

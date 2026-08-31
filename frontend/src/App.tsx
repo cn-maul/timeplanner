@@ -11,9 +11,11 @@ import BlockDialog from './components/BlockDialog'
 import SettingsDialog, { type SettingsPayload } from './components/SettingsDialog'
 import LoginDialog from './components/LoginDialog'
 import PasswordDialog from './components/PasswordDialog'
+import { ConfirmDialog } from './components/ui'
 
 type View = 'week' | 'day' | 'events'
 type Toast = { id: number; type: 'ok' | 'err'; text: string }
+type ConfirmState = { title: string; message: string; onConfirm: () => Promise<void> }
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -31,6 +33,7 @@ export default function App() {
   const [admin, setAdmin] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const mainRef = useRef<HTMLElement>(null)
 
   const toast = useCallback((text: string, type: 'ok' | 'err' = 'ok') => {
@@ -145,13 +148,21 @@ export default function App() {
     await refreshWeek()
   }
 
-  const deleteBlock = async () => {
-    if (!blockModal?.block) return
-    if (!window.confirm('确定删除这个安排吗？')) return
-    await api.deleteBlock(blockModal.block.id)
-    setBlockModal(null)
-    toast('已删除安排')
-    await refreshWeek()
+  /** 弹出统一确认框，替代 window.confirm */
+  const deleteBlock = () => {
+    const b = blockModal?.block
+    if (!b) return
+    setConfirm({
+      title: '删除这个安排？',
+      message: `「${b.title || BLOCK_CATEGORIES[b.category].label}」${b.date} ${b.start}–${b.end}，删除后无法恢复。`,
+      onConfirm: async () => {
+        await api.deleteBlock(b.id)
+        setBlockModal(null)
+        setConfirm(null)
+        toast('已删除安排')
+        await refreshWeek()
+      },
+    })
   }
 
   const saveEvent = async (values: Omit<RecurEvent, 'id'>) => {
@@ -165,13 +176,20 @@ export default function App() {
     await Promise.all([refreshEvents(), refreshWeek()])
   }
 
-  const deleteEvent = async () => {
-    if (!eventModal?.event) return
-    if (!window.confirm(`确定删除周期事件「${eventModal.event.title}」吗？`)) return
-    await api.deleteEvent(eventModal.event.id)
-    setEventModal(null)
-    toast('已删除周期事件')
-    await Promise.all([refreshEvents(), refreshWeek()])
+  const deleteEvent = () => {
+    const ev = eventModal?.event
+    if (!ev) return
+    setConfirm({
+      title: `删除周期事件「${ev.title}」？`,
+      message: '它将从每周时间表中移除，占用的时段会重新变为空闲。',
+      onConfirm: async () => {
+        await api.deleteEvent(ev.id)
+        setEventModal(null)
+        setConfirm(null)
+        toast('已删除周期事件')
+        await Promise.all([refreshEvents(), refreshWeek()])
+      },
+    })
   }
 
   const toggleEvent = async (ev: RecurEvent) => {
@@ -183,15 +201,22 @@ export default function App() {
     }
   }
 
-  const removeEventFromList = async (ev: RecurEvent) => {
-    if (!window.confirm(`确定删除周期事件「${ev.title}」吗？`)) return
-    try {
-      await api.deleteEvent(ev.id)
-      await Promise.all([refreshEvents(), refreshWeek()])
-      toast('已删除周期事件')
-    } catch (e) {
-      toast(errText(e), 'err')
-    }
+  const removeEventFromList = (ev: RecurEvent) => {
+    setConfirm({
+      title: `删除周期事件「${ev.title}」？`,
+      message: '它将从每周时间表中移除，占用的时段会重新变为空闲。',
+      onConfirm: async () => {
+        try {
+          await api.deleteEvent(ev.id)
+          await Promise.all([refreshEvents(), refreshWeek()])
+          setConfirm(null)
+          toast('已删除周期事件')
+        } catch (e) {
+          setConfirm(null)
+          toast(errText(e), 'err')
+        }
+      },
+    })
   }
 
   const saveSettings = async (payload: SettingsPayload) => {
@@ -206,11 +231,16 @@ export default function App() {
   const day = week?.days.find((d) => d.date === anchor)
 
   return (
-    <div className="min-h-full bg-slate-100">
+    <div className="min-h-full">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-4">
           <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-900">
-            <span className="text-lg">🗓️</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white shadow-xs">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+            </span>
             <span className="hidden sm:inline">时间规划助手</span>
           </div>
 
@@ -227,7 +257,7 @@ export default function App() {
                 type="button"
                 onClick={() => setView(key)}
                 className={`rounded-full px-3.5 py-1.5 text-sm transition ${
-                  view === key ? 'bg-white font-medium text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  view === key ? 'bg-white font-medium text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 {label}
@@ -322,34 +352,36 @@ export default function App() {
       </header>
 
       <main ref={mainRef} className="mx-auto h-[calc(100vh-3.5rem)] max-w-[1440px] overflow-y-auto p-4 pb-10">
-        {view === 'week' && week && (
-          <WeekSection
-            week={week}
-            editable={isAdmin}
-            onCreateIn={openCreate}
-            onEditBlock={editBlock}
-            onEditEvent={editEvent}
-            onOpenDay={(date) => {
-              setAnchor(date)
-              setView('day')
-            }}
-            onGoEvents={() => setView('events')}
-          />
-        )}
-        {view === 'day' && week && day && (
-          <DayView day={day} settings={week.settings} editable={isAdmin} onCreateIn={openCreate} onEditBlock={editBlock} onEditEvent={editEvent} />
-        )}
-        {view === 'events' && (
-          <EventsView
-            events={events}
-            editable={isAdmin}
-            onAdd={() => setEventModal({})}
-            onEdit={(ev) => setEventModal({ event: ev })}
-            onToggle={(ev) => void toggleEvent(ev)}
-            onDelete={(ev) => void removeEventFromList(ev)}
-          />
-        )}
-        {view !== 'events' && !week && <p className="p-10 text-center text-sm text-slate-400">加载中…</p>}
+        <div key={view} className="animate-fade-in">
+          {view === 'week' && week && (
+            <WeekSection
+              week={week}
+              editable={isAdmin}
+              onCreateIn={openCreate}
+              onEditBlock={editBlock}
+              onEditEvent={editEvent}
+              onOpenDay={(date) => {
+                setAnchor(date)
+                setView('day')
+              }}
+              onGoEvents={() => setView('events')}
+            />
+          )}
+          {view === 'day' && week && day && (
+            <DayView day={day} settings={week.settings} editable={isAdmin} onCreateIn={openCreate} onEditBlock={editBlock} onEditEvent={editEvent} />
+          )}
+          {view === 'events' && (
+            <EventsView
+              events={events}
+              editable={isAdmin}
+              onAdd={() => setEventModal({})}
+              onEdit={(ev) => setEventModal({ event: ev })}
+              onToggle={(ev) => void toggleEvent(ev)}
+              onDelete={removeEventFromList}
+            />
+          )}
+          {view !== 'events' && !week && <p className="p-10 text-center text-sm text-slate-400">加载中…</p>}
+        </div>
       </main>
 
       {blockModal && (
@@ -397,10 +429,29 @@ export default function App() {
       {passwordDialogOpen && (
         <PasswordDialog mode={passwordSet ? 'change' : 'set'} onClose={() => setPasswordDialogOpen(false)} onSaved={onPasswordSaved} />
       )}
+      {confirm && (
+        <ConfirmDialog title={confirm.title} message={confirm.message} onClose={() => setConfirm(null)} onConfirm={confirm.onConfirm} />
+      )}
 
       <div className="pointer-events-none fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 flex-col items-center gap-2">
         {toasts.map((t) => (
-          <div key={t.id} className={`rounded-lg px-4 py-2 text-sm text-white shadow-lg ${t.type === 'ok' ? 'bg-slate-900' : 'bg-rose-600'}`}>
+          <div
+            key={t.id}
+            className={`animate-slide-up flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-white shadow-lg ring-1 ring-black/5 ${
+              t.type === 'ok' ? 'bg-slate-900' : 'bg-rose-600'
+            }`}
+          >
+            {t.type === 'ok' ? (
+              <svg className="shrink-0 text-emerald-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <path d="m9 11 3 3L22 4" />
+              </svg>
+            ) : (
+              <svg className="shrink-0 text-rose-100" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+            )}
             {t.text}
           </div>
         ))}
@@ -422,33 +473,46 @@ interface WeekSectionProps {
 
 function WeekSection({ week, editable, onCreateIn, onEditBlock, onEditEvent, onOpenDay, onGoEvents }: WeekSectionProps) {
   const s = week.stats
+  const totalMin = Math.max(1, s.freeMin + s.fixedMin + s.plannedMin)
+  const pct = (n: number) => `${(n / totalMin) * 100}%`
   return (
     <div>
       {week.eventCount === 0 && editable && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200/70">
           <span>你还没有录入周期事件，整周时间都会被视为空闲。先添加课程、例会等固定安排吧。</span>
-          <button type="button" onClick={onGoEvents} className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-500">
+          <button type="button" onClick={onGoEvents} className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-500">
             去添加
           </button>
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-        <span className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
-          空闲 <b className="font-semibold text-slate-900">{fmtDur(s.freeMin)}</b>
-        </span>
-        <span className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
-          固定安排 <b className="font-semibold text-slate-900">{fmtDur(s.fixedMin)}</b>
-        </span>
-        <span className="rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
-          已计划 <b className="font-semibold text-slate-900">{fmtDur(s.plannedMin)}</b>
-        </span>
-        {BLOCK_CATEGORY_KEYS.filter((k) => (s.byCategory[k] ?? 0) > 0).map((k) => (
-          <span key={k} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1 ring-1 ring-slate-200">
-            <span className={`h-2 w-2 rounded-full ${BLOCK_CATEGORIES[k].dot}`} />
-            {BLOCK_CATEGORIES[k].label} {fmtDur(s.byCategory[k] ?? 0)}
+      {/* 本周时间预算：固定/已计划/空闲 的占比条 + 图例 */}
+      <div className="mb-3 rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200/80">
+        <div className="flex h-2.5 gap-0.5">
+          {s.fixedMin > 0 && <div className="rounded-full bg-gradient-to-r from-slate-400 to-slate-300" style={{ width: pct(s.fixedMin) }} />}
+          {s.plannedMin > 0 && <div className="rounded-full bg-gradient-to-r from-brand-500 to-brand-400" style={{ width: pct(s.plannedMin) }} />}
+          {s.freeMin > 0 && <div className="min-w-2 flex-1 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+            <span className="h-2 w-2 rounded-full bg-slate-400" />
+            固定安排 <b className="font-semibold text-slate-900">{fmtDur(s.fixedMin)}</b>
           </span>
-        ))}
+          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+            <span className="h-2 w-2 rounded-full bg-brand-500" />
+            已计划 <b className="font-semibold text-slate-900">{fmtDur(s.plannedMin)}</b>
+          </span>
+          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            空闲 <b className="font-semibold text-slate-900">{fmtDur(s.freeMin)}</b>
+          </span>
+          {BLOCK_CATEGORY_KEYS.filter((k) => (s.byCategory[k] ?? 0) > 0).map((k) => (
+            <span key={k} className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
+              <span className={`h-2 w-2 rounded-full ${BLOCK_CATEGORIES[k].dot}`} />
+              {BLOCK_CATEGORIES[k].label} {fmtDur(s.byCategory[k] ?? 0)}
+            </span>
+          ))}
+        </div>
       </div>
 
       <WeekGrid

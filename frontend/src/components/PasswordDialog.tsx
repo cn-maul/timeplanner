@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, setAdminPassword } from '../api'
-import { ErrorText, Field, Modal, inputCls } from './ui'
+import { ErrorText, Field, Modal, btnGhost, btnPrimary, inputCls } from './ui'
 
 interface Props {
   /** set=尚未设置密码；change=修改已有密码（当前密码由请求头自动携带） */
@@ -62,14 +62,10 @@ export default function PasswordDialog({ mode, onClose, onSaved }: Props) {
         </Field>
         <ErrorText text={error} />
         <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-100">
+          <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
-          >
+          <button type="submit" disabled={busy} className={btnPrimary}>
             保存
           </button>
         </div>
