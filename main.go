@@ -46,6 +46,16 @@ func main() {
 	if !*noOpen {
 		go openBrowser(url)
 	}
+
+	// 每 24 小时整理一次数据：迁移旧分类、清除超过 1 个月的过期安排
+	go func() {
+		for range time.Tick(24 * time.Hour) {
+			if migrated, removed := store.normalize(); migrated > 0 || removed > 0 {
+				log.Printf("数据整理完成：迁移 %d 条旧分类，清除 %d 条超过 1 个月的过期数据", migrated, removed)
+			}
+		}
+	}()
+
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("服务器异常退出: %v", err)
 	}

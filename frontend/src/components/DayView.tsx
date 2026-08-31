@@ -18,7 +18,6 @@ export default function DayView({ day, settings, editable = true, onCreateIn, on
   const total = Math.max(1, mm(settings.dayEnd) - mm(settings.dayStart))
   const fixedPct = (stats.fixedMin / total) * 100
   const plannedPct = (stats.plannedMin / total) * 100
-  const ring = `conic-gradient(#94a3b8 0% ${fixedPct}%, #6366f1 ${fixedPct}% ${fixedPct + plannedPct}%, #34d399 ${fixedPct + plannedPct}% 100%)`
 
   return (
     <div className="flex items-start gap-5">
@@ -37,19 +36,16 @@ export default function DayView({ day, settings, editable = true, onCreateIn, on
       <aside className="w-80 shrink-0 space-y-4">
         <section className="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200/80">
           <h3 className="mb-3 text-sm font-semibold text-slate-900">今日统计</h3>
-          <div className="mb-3 flex items-center gap-4">
-            <div className="relative h-24 w-24 shrink-0">
-              <div className="h-full w-full rounded-full" style={{ background: ring }} />
-              <div className="absolute inset-[11px] flex flex-col items-center justify-center rounded-full bg-white text-center">
-                <span className="text-xs font-bold tabular-nums text-slate-900">{fmtDur(stats.freeMin)}</span>
-                <span className="mt-0.5 text-[10px] text-slate-400">空闲</span>
-              </div>
-            </div>
-            <div className="grid flex-1 gap-2">
-              <LegendRow dot="bg-slate-400" label="固定安排" value={fmtDur(stats.fixedMin)} />
-              <LegendRow dot="bg-brand-500" label="已计划" value={fmtDur(stats.plannedMin)} />
-              <LegendRow dot="bg-emerald-400" label="空闲" value={fmtDur(stats.freeMin)} />
-            </div>
+          {/* 今日时间预算：固定/已计划/空闲 占比条（与周视图一致） */}
+          <div className="flex h-2.5 gap-0.5">
+            {stats.fixedMin > 0 && <div className="rounded-full bg-gradient-to-r from-slate-400 to-slate-300" style={{ width: `${fixedPct}%` }} />}
+            {stats.plannedMin > 0 && <div className="rounded-full bg-gradient-to-r from-brand-500 to-brand-400" style={{ width: `${plannedPct}%` }} />}
+            {stats.freeMin > 0 && <div className="min-w-2 flex-1 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />}
+          </div>
+          <div className="mt-3 space-y-1.5">
+            <LegendRow dot="bg-slate-400" label="固定安排" value={fmtDur(stats.fixedMin)} />
+            <LegendRow dot="bg-brand-500" label="已计划" value={fmtDur(stats.plannedMin)} />
+            <LegendRow dot="bg-emerald-400" label="空闲" value={fmtDur(stats.freeMin)} />
           </div>
         </section>
 

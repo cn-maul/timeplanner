@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -47,7 +48,7 @@ type Event struct {
 	Enabled  bool   `json:"enabled"`
 }
 
-// Block 单次安排：用户在空闲时段内计划的活动（工作、学习、休闲、个人事务）。
+// Block 单次安排：用户在空闲时段内计划的活动（工作、学习、休闲）。
 type Block struct {
 	ID       string `json:"id"`
 	Date     string `json:"date"` // YYYY-MM-DD
@@ -81,9 +82,9 @@ type plannerData struct {
 	Integration  Integration `json:"integration"`
 }
 
-var fixedCategories = map[string]bool{"meeting": true, "class": true, "fitness": true, "life": true, "other": true}
-var planCategories = map[string]bool{"work": true, "study": true, "leisure": true, "personal": true}
-var planLabels = map[string]string{"work": "工作", "study": "学习", "leisure": "休闲", "personal": "个人事务"}
+var fixedCategories = map[string]bool{"meeting": true, "class": true, "life": true, "other": true}
+var planCategories = map[string]bool{"work": true, "study": true, "leisure": true}
+var planLabels = map[string]string{"work": "工作", "study": "学习", "leisure": "休闲"}
 
 var (
 	hmRE   = regexp.MustCompile(`^([01]\d|2[0-3]):[0-5]\d$`)
@@ -134,7 +135,60 @@ func OpenStore(path string) (*Store, error) {
 	if s.d.Blocks == nil {
 		s.d.Blocks = []*Block{}
 	}
+	// 数据整理：迁移已移除分类，清除超过 1 个月的过期数据
+	if migrated, removed := s.normalize(); migrated > 0 || removed > 0 {
+		log.Printf("数据整理完成：迁移 %d 条旧分类，清除 %d 条超过 1 个月的过期数据", migrated, removed)
+	}
 	return s, nil
+}
+
+// normalize 整理数据：把已移除分类迁移到兜底分类，并清除早于 30 天前的过期数据
+// （单次安排按日期、周期事件按生效结束日期判断）。返回（迁移条数，清理条数）。
+func (s *Store) normalize() (int, int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	migrated := 0
+	for _, e := range s.d.Events {
+		if !fixedCategories[e.Category] {
+			e.Category = "other" // 已移除分类（如 fitness）落到「其他」
+			migrated++
+		}
+	}
+	for _, b := range s.d.Blocks {
+		if !planCategories[b.Category] {
+			b.Category = "leisure" // 已移除分类（如 personal）落到「休闲」
+			migrated++
+		}
+	}
+
+	cutoff := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	removed := 0
+	events := s.d.Events[:0]
+	for _, e := range s.d.Events {
+		if e.To != "" && e.To < cutoff {
+			removed++
+			continue
+		}
+		events = append(events, e)
+	}
+	s.d.Events = events
+	blocks := s.d.Blocks[:0]
+	for _, b := range s.d.Blocks {
+		if b.Date < cutoff {
+			removed++
+			continue
+		}
+		blocks = append(blocks, b)
+	}
+	s.d.Blocks = blocks
+
+	if migrated > 0 || removed > 0 {
+		if err := s.saveLocked(); err != nil {
+			log.Printf("数据整理后保存失败: %v", err)
+		}
+	}
+	return migrated, removed
 }
 
 func (s *Store) saveLocked() error {

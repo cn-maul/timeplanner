@@ -68,7 +68,7 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
             className={inputCls}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="如：团队例会、英语课、健身"
+            placeholder="如：团队例会、英语课"
             autoFocus
           />
         </Field>

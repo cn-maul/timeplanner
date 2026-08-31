@@ -3,8 +3,8 @@ export interface Settings {
   dayEnd: string
 }
 
-export type EventCategory = 'meeting' | 'class' | 'fitness' | 'life' | 'other'
-export type BlockCategory = 'work' | 'study' | 'leisure' | 'personal'
+export type EventCategory = 'meeting' | 'class' | 'life' | 'other'
+export type BlockCategory = 'work' | 'study' | 'leisure'
 
 /** 周期事件：固定重复的日程 */
 export interface RecurEvent {

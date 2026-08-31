@@ -17,21 +17,16 @@ export const EVENT_CATEGORIES: Record<EventCategory, CategoryMeta> = {
   },
   class: {
     label: '课程',
-    cell: 'border-l-[3px] border-violet-500 bg-violet-50/95 text-violet-800',
-    dot: 'bg-violet-500',
-    chip: 'border-violet-200 bg-violet-100 text-violet-700',
-  },
-  fitness: {
-    label: '健身',
-    cell: 'border-l-[3px] border-emerald-500 bg-emerald-50/95 text-emerald-800',
-    dot: 'bg-emerald-500',
-    chip: 'border-emerald-200 bg-emerald-100 text-emerald-700',
+    // 用偏品红的 purple 而不是 violet，避免与「工作」的 indigo 混淆
+    cell: 'border-l-[3px] border-purple-500 bg-purple-50/95 text-purple-800',
+    dot: 'bg-purple-500',
+    chip: 'border-purple-200 bg-purple-100 text-purple-700',
   },
   life: {
     label: '生活',
-    cell: 'border-l-[3px] border-amber-500 bg-amber-50/95 text-amber-800',
-    dot: 'bg-amber-500',
-    chip: 'border-amber-200 bg-amber-100 text-amber-700',
+    cell: 'border-l-[3px] border-rose-500 bg-rose-50/95 text-rose-800',
+    dot: 'bg-rose-500',
+    chip: 'border-rose-200 bg-rose-100 text-rose-700',
   },
   other: {
     label: '其他',
@@ -59,12 +54,6 @@ export const BLOCK_CATEGORIES: Record<BlockCategory, CategoryMeta> = {
     cell: 'border-l-[3px] border-pink-500 bg-pink-50/95 text-pink-800',
     dot: 'bg-pink-500',
     chip: 'border-pink-200 bg-pink-100 text-pink-700',
-  },
-  personal: {
-    label: '个人事务',
-    cell: 'border-l-[3px] border-orange-500 bg-orange-50/95 text-orange-800',
-    dot: 'bg-orange-500',
-    chip: 'border-orange-200 bg-orange-100 text-orange-700',
   },
 }
 

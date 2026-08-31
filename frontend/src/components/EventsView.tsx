@@ -29,7 +29,7 @@ export default function EventsView({ events, editable = true, onAdd, onEdit, onT
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">周期事件</h2>
-          <p className="mt-0.5 text-sm text-slate-500">例会、课程、健身这类固定日程录入一次，系统会自动排入每周时间表，并扣除对应空闲时段。</p>
+          <p className="mt-0.5 text-sm text-slate-500">例会、课程这类固定日程录入一次，系统会自动排入每周时间表，并扣除对应空闲时段。</p>
         </div>
         {editable && (
           <button type="button" onClick={onAdd} className={`${btnPrimary} shrink-0`}>
@@ -61,7 +61,7 @@ export default function EventsView({ events, editable = true, onAdd, onEdit, onT
             <path d="M118 74.5v11M112.5 80h11" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           <p className="mt-4 text-sm font-medium text-slate-700">还没有周期事件</p>
-          <p className="mt-1 text-sm text-slate-400">添加你的课程、例会、健身等固定安排后，这里会自动生成每周时间表。</p>
+          <p className="mt-1 text-sm text-slate-400">添加你的课程、例会等固定安排后，这里会自动生成每周时间表。</p>
           {editable && (
             <button type="button" onClick={onAdd} className={`mt-4 ${btnPrimary}`}>
               添加第一个事件
