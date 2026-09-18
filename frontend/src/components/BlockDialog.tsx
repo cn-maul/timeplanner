@@ -76,7 +76,7 @@ export default function BlockDialog({ initial, ticketsEnabled = false, onClose, 
   return (
     <Modal title={b ? '编辑安排' : '添加安排'} onClose={onClose}>
       <form
-        className="space-y-4"
+        className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
@@ -84,7 +84,7 @@ export default function BlockDialog({ initial, ticketsEnabled = false, onClose, 
       >
         {ticketsEnabled && (
           <Field label="从工单导入" hint={ticketErr ? `工单列表获取失败：${ticketErr}` : undefined}>
-            <select className={inputCls} value={ticketSel} onChange={(e) => pickTicket(e.target.value)}>
+            <select className={`${inputCls} cursor-pointer`} value={ticketSel} onChange={(e) => pickTicket(e.target.value)}>
               <option value="">
                 {tickets === null
                   ? ticketErr
@@ -115,18 +115,23 @@ export default function BlockDialog({ initial, ticketsEnabled = false, onClose, 
 
         <Field label="分类">
           <div className="flex flex-wrap gap-2">
-            {BLOCK_CATEGORY_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setCategory(key)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  category === key ? BLOCK_CATEGORIES[key].chip : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                }`}
-              >
-                {BLOCK_CATEGORIES[key].label}
-              </button>
-            ))}
+            {BLOCK_CATEGORY_KEYS.map((key) => {
+              const on = category === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCategory(key)}
+                  className={`anim-press cursor-pointer rounded-full px-3.5 py-1.5 text-[13.5px] transition duration-200 ease-quart active:scale-[0.97] ${
+                    on
+                      ? 'bg-accent font-semibold text-white shadow-[0_1px_2px_rgba(0,113,227,0.24)]'
+                      : 'bg-black/[0.05] font-medium text-ink-2 hover:bg-black/[0.08] hover:text-ink'
+                  }`}
+                >
+                  {BLOCK_CATEGORIES[key].label}
+                </button>
+              )
+            })}
           </div>
         </Field>
 
@@ -143,12 +148,12 @@ export default function BlockDialog({ initial, ticketsEnabled = false, onClose, 
         </div>
 
         <Field label="备注（可选）">
-          <textarea className={`${inputCls} h-16 resize-none`} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea className={`${inputCls} h-[68px] resize-none`} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         <ErrorText text={error} />
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2">
           {onDelete && (
             <button type="button" onClick={onDelete} className={btnDangerGhost}>
               删除

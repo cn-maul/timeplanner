@@ -32,13 +32,13 @@ export default function LoginDialog({ onClose, onSuccess }: Props) {
   return (
     <Modal title="管理员登录" onClose={onClose} width="max-w-sm">
       <form
-        className="space-y-4"
+        className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
         }}
       >
-        <p className="text-sm text-slate-500">输入管理密码后可添加和修改安排，游客仅有查看权限。</p>
+        <p className="text-[13.5px] leading-[1.7] text-ink-2">输入管理密码后可添加和修改安排，游客仅有查看权限。</p>
         <input
           type="password"
           className={inputCls}
@@ -48,7 +48,7 @@ export default function LoginDialog({ onClose, onSuccess }: Props) {
           autoFocus
         />
         <ErrorText text={error} />
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>

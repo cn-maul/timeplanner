@@ -1,77 +1,178 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import './tokens.css';
 
-@theme {
-  /* 品牌主色：目前为 indigo 系。整体换主题只需改这一处 */
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+/* 设计令牌 → Tailwind 工具类（bg-ground / text-ink-2 / rounded-panel / shadow-panel …）
+   值统一来自 tokens.css，改主题只改那一个文件。 */
+@theme inline {
+  --font-sans: var(--font);
 
-  /* 入场动效 */
-  --animate-fade-in: fade-in 0.2s ease-out both;
-  --animate-pop-in: pop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-slide-up: slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --color-ground: var(--bg);
+  --color-surface: var(--surface);
+  --color-hov: var(--hover);
+  --color-ink: var(--text);
+  --color-ink-body: var(--text-body);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-ink-4: var(--text-4);
+  --color-faint: var(--faint);
+  --color-hairline: var(--hairline);
 
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes pop-in {
-    from {
-      opacity: 0;
-      transform: scale(0.96) translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  --color-accent: var(--accent);
+  --color-accent-link: var(--accent-link);
+  --color-heat: var(--heat);
+  --color-live: var(--live);
+  --color-track: var(--track);
+
+  --radius-thumb: var(--r-thumb);
+  --radius-card: var(--r-card);
+  --radius-panel: var(--r-panel);
+  --radius-hero: var(--r-hero);
+
+  --shadow-card: var(--sh-card);
+  --shadow-panel: var(--sh-panel);
+  --shadow-lift: var(--sh-lift);
+  --shadow-overlay: var(--sh-overlay);
+
+  --ease-spring: var(--ease-spring);
+  --ease-quart: var(--ease-out-quart);
 }
 
-html,
-body,
-#root {
-  height: 100%;
+/* ── 基础 ── */
+html {
+  font-optical-sizing: auto;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* 顶部一层极淡的品牌色光晕，给灰底增加氛围 */
-  background-color: #f1f5f9;
-  background-image: radial-gradient(900px 360px at 50% -120px, rgb(99 102 241 / 0.08), transparent 70%);
-  background-repeat: no-repeat;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* 大面积数字禁用连字歧义，统一等宽数字 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 按压反馈：在 pointer-down 即生效，不等松开 */
+.anim-press:active {
+  transform: scale(0.97);
+}
+
+/* ── 液态玻璃：只用于吸顶导航 / 浮层 / 彩色块内的元素 ── */
+.glass-nav {
+  background: rgba(245, 245, 247, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color 0.3s var(--ease-out-quart),
+    box-shadow 0.3s var(--ease-out-quart);
+}
+/* scroll-edge：只有内容确实滚到导航下面时才出现分隔线 */
+.glass-nav.scrolled {
+  border-bottom-color: var(--hairline);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.04);
+}
+.glass-chip {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* 在线 / 启用呼吸点 */
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(48, 209, 88, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(48, 209, 88, 0);
+  }
+}
+
+/* 当前时间线：柔和呼吸，不抢视觉 */
+@keyframes now-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 轻提示入场：与浮层同一套曲线 */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── 滚动条 ── */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--faint);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-4);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ── 无障碍：三条 prefers-* 都要处理 ── */
+@media (prefers-reduced-motion: reduce) {
+  /* 减弱而不是取消：去掉位移，只留淡入 */
+  .animate-slide-up,
+  .animate-pop-in {
+    transform: none !important;
+  }
+  .anim-press:active {
+    transform: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-nav {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .glass-nav.scrolled {
+    border-bottom-color: var(--hairline);
+  }
+  .glass-chip {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .glass-nav {
+    background: var(--bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+  }
+  .glass-chip {
+    background: var(--surface);
+    border-color: rgba(0, 0, 0, 0.35);
+  }
 }

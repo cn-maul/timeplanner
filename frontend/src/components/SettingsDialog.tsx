@@ -73,13 +73,13 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
 
   return (
     <Modal title="设置" onClose={onClose} width="max-w-md">
-      <div className="space-y-5">
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">每日规划时段</h3>
-          <p className="text-sm text-slate-500">时间表与空闲时段统计将限定在该时段内，时段外的活动仍会显示在时间轴上。</p>
+      <div className="flex flex-col gap-6">
+        <section className="flex flex-col gap-3">
+          <h3 className="text-[13px] font-semibold text-ink">每日规划时段</h3>
+          <p className="text-[13px] leading-[1.7] text-ink-2">时间表与空闲时段统计限定在该时段内，时段外的活动仍会显示在时间轴上。</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="每天从">
-              <select className={inputCls} value={dayStart} onChange={(e) => setDayStart(e.target.value)}>
+              <select className={`${inputCls} cursor-pointer`} value={dayStart} onChange={(e) => setDayStart(e.target.value)}>
                 {START_OPTIONS.map((o) => (
                   <option key={o} value={o}>
                     {o}
@@ -88,7 +88,7 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
               </select>
             </Field>
             <Field label="每天到">
-              <select className={inputCls} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)}>
+              <select className={`${inputCls} cursor-pointer`} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)}>
                 {END_OPTIONS.map((o) => (
                   <option key={o} value={o}>
                     {o}
@@ -99,9 +99,9 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
           </div>
         </section>
 
-        <section className="space-y-3 border-t border-slate-100 pt-4">
-          <h3 className="text-sm font-semibold text-slate-900">工单系统集成（可选）</h3>
-          <p className="text-sm text-slate-500">
+        <section className="flex flex-col gap-3 border-t border-hairline pt-5">
+          <h3 className="text-[13px] font-semibold text-ink">工单系统集成（可选）</h3>
+          <p className="text-[13px] leading-[1.7] text-ink-2">
             填写 tix 工单系统地址与 API Key 后，新建安排时可一键导入待处理工单。Key 在 tix 的「系统设置 → 通用设置」中生成。
           </p>
           <Field label="工单系统地址">
@@ -128,14 +128,14 @@ export default function SettingsDialog({ initial, onClose, onSave }: Props) {
             <button type="button" onClick={() => void testConnection()} disabled={testing} className={btnOutline}>
               {testing ? '测试中…' : '测试连接'}
             </button>
-            {testOk && <span className="text-sm text-emerald-600">{testOk}</span>}
-            {testErr && <span className="min-w-0 flex-1 truncate text-sm text-rose-600">{testErr}</span>}
+            {testOk && <span className="text-[13px] text-[#1f8a3b]">{testOk}</span>}
+            {testErr && <span className="min-w-0 flex-1 truncate text-[13px] text-[#c4342b]">{testErr}</span>}
           </div>
         </section>
 
         <ErrorText text={error} />
 
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>

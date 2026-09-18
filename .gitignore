@@ -3,3 +3,6 @@ web/dist/
 *.exe
 planner-data.json
 planner-data.json.tmp
+
+# 本地专属：WorkBuddy 记忆与技能
+.workbuddy/

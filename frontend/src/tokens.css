@@ -1,0 +1,61 @@
+/* ════════════════════════════════════════════════════════════════
+   Apple Liquid Glass — 设计令牌
+   改主题只需要改这一个文件：颜色、圆角、阴影、字体、缓动都在这里。
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 中性色（界面的骨架） ── */
+  --bg: #f5f5f7;        /* 页面底：冷灰白，不要用暖米色 */
+  --surface: #ffffff;   /* 面板 / 卡片 */
+  --hover: #fbfbfd;     /* 行悬停 */
+  --text: #1d1d1f;      /* 主文字 / 标题 */
+  --text-body: #424245; /* 长段落正文 */
+  --text-2: #6e6e73;    /* 次级：摘要、元信息 */
+  --text-3: #86868b;    /* 三级：说明文字 */
+  --text-4: #aeaeb2;    /* 占位符 */
+  --faint: #d2d2d7;     /* 编号、箭头、极浅元素 */
+  --hairline: rgba(0, 0, 0, 0.07); /* 分隔线，全站统一 */
+
+  /* ── 强调色（只用于强调，正文保持灰阶） ── */
+  --accent: #0071e3;      /* Apple 蓝：主操作 / 链接 / 焦点 */
+  --accent-link: #0066cc; /* 浅底上的链接与标签文字 */
+  --indigo: #5e5ce6;      /* 渐变第二色 */
+  --heat: #ff6b00;        /* 提醒 / 待处理 */
+  --heat-bg: rgba(255, 107, 0, 0.1);
+  --live: #30d158;        /* 在线 / 启用 */
+
+  /* ── 语义渐变（只用在大块信息 / 主按钮） ── */
+  --grad-blue: linear-gradient(135deg, #0071e3 0%, #5e5ce6 100%);
+  --grad-active: linear-gradient(180deg, #0a7ff0 0%, #0071e3 100%);
+
+  /* ── 字体 ── */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── 圆角（语义层级，不要临时拍一个值） ── */
+  --r-pill: 999px;  /* 胶囊：按钮 / 分段控件 / 标签 */
+  --r-chip: 6px;    /* 极小标记 */
+  --r-thumb: 12px;  /* 缩略 / 小块 */
+  --r-card: 16px;   /* 标准卡片 */
+  --r-panel: 22px;  /* 大面板 / 区块容器 */
+  --r-hero: 26px;   /* 焦点区块 */
+
+  /* ── 阴影（两层：贴地接触 + 柔和扩散，不要单层硬阴影） ── */
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --sh-panel: 0 1px 3px rgba(0, 0, 0, 0.05), 0 14px 40px rgba(0, 0, 0, 0.05);
+  --sh-lift: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --sh-overlay: 0 2px 8px rgba(0, 0, 0, 0.1), 0 30px 80px rgba(0, 0, 0, 0.24);
+
+  /* ── 组件灰（进度槽 / 开关关闭态：可见但不抢眼） ── */
+  --track: #e8e8ed;
+
+  /* ── 容器 ── */
+  --max-read: 720px;
+  --max-grid: 1080px;
+  --pad-x: 22px;
+
+  /* ── 动效曲线 ── */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);   /* 入：弹层 / 对话框（~400ms） */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1); /* 小位移：悬停、分段滑动（~200ms） */
+}

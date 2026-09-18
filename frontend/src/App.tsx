@@ -11,7 +11,7 @@ import BlockDialog from './components/BlockDialog'
 import SettingsDialog, { type SettingsPayload } from './components/SettingsDialog'
 import LoginDialog from './components/LoginDialog'
 import PasswordDialog from './components/PasswordDialog'
-import { ConfirmDialog } from './components/ui'
+import { ConfirmDialog, btnPrimary, segBtn, segOn, segTrackNarrow, segTrackWide } from './components/ui'
 
 type View = 'week' | 'day' | 'events'
 type Toast = { id: number; type: 'ok' | 'err'; text: string }
@@ -34,6 +34,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [scrolled, setScrolled] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
 
   const toast = useCallback((text: string, type: 'ok' | 'err' = 'ok') => {
@@ -232,19 +233,20 @@ export default function App() {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-4">
-          <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white shadow-xs">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* 吸顶玻璃导航：只在内容确实滚到下面时才出现分隔线 */}
+      <header className={`glass-nav sticky top-0 z-40 ${scrolled ? 'scrolled' : ''}`}>
+        <div className="mx-auto flex h-[54px] max-w-[1080px] items-center gap-2 px-4 sm:gap-3 sm:px-5">
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-accent text-white">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
             </span>
-            <span className="hidden sm:inline">时间规划助手</span>
+            <span className="hidden text-[15px] font-semibold tracking-[-0.01em] text-ink sm:inline">时间规划助手</span>
           </div>
 
-          <nav className="ml-1 flex items-center gap-1 rounded-full bg-slate-100 p-1">
+          <nav className={`${segTrackWide} ml-1 shrink-0`}>
             {(
               [
                 ['week', '周计划'],
@@ -252,14 +254,22 @@ export default function App() {
                 ['events', '周期事件'],
               ] as const
             ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setView(key)}
-                className={`rounded-full px-3.5 py-1.5 text-sm transition ${
-                  view === key ? 'bg-white font-medium text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
+              <button key={key} type="button" onClick={() => setView(key)} className={`${segBtn} ${view === key ? segOn : ''}`}>
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          {/* 窄屏用更紧凑的分段控件 */}
+          <nav className={`${segTrackNarrow} ml-1 shrink-0`}>
+            {(
+              [
+                ['week', '周'],
+                ['day', '日'],
+                ['events', '事件'],
+              ] as const
+            ).map(([key, label]) => (
+              <button key={key} type="button" onClick={() => setView(key)} className={`${segBtn} px-3 ${view === key ? segOn : ''}`}>
                 {label}
               </button>
             ))}
@@ -271,27 +281,31 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => shift(-1)}
-                  className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                  className="anim-press flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.94]"
                   title={view === 'day' ? '前一天' : '上一周'}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m15 18-6-6 6-6" />
                   </svg>
                 </button>
-                <button type="button" onClick={() => setAnchor(todayStr())} className="rounded-lg px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAnchor(todayStr())}
+                  className="anim-press shrink-0 cursor-pointer whitespace-nowrap rounded-full px-3 py-1.5 text-[13.5px] font-medium text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.97]"
+                >
                   今天
                 </button>
                 <button
                   type="button"
                   onClick={() => shift(1)}
-                  className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                  className="anim-press flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.94]"
                   title={view === 'day' ? '后一天' : '下一周'}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m9 18 6-6-6-6" />
                   </svg>
                 </button>
-                <span className="ml-1 hidden text-sm font-medium text-slate-700 md:inline">
+                <span className="tnum ml-1 hidden text-[13.5px] font-medium text-ink md:inline">
                   {view === 'week' && week ? weekRangeLabel(week.weekStart, week.weekEnd) : dateLabel(anchor)}
                 </span>
               </>
@@ -300,25 +314,28 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setLoginOpen(true)}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                className="anim-press cursor-pointer rounded-full px-3 py-1.5 text-[13.5px] font-medium text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.97]"
               >
                 管理员登录
               </button>
             )}
             {passwordSet === true && admin && (
               <>
-                <span className="mr-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">管理员</span>
+                <span className="mr-1 hidden items-center gap-1.5 rounded-full bg-black/[0.05] px-2.5 py-1 text-[12px] font-medium text-ink-2 sm:flex">
+                  <span className="h-[7px] w-[7px] rounded-full bg-live" style={{ animation: 'pulse-dot 2.2s infinite' }} />
+                  管理员
+                </span>
                 <button
                   type="button"
                   onClick={() => setPasswordDialogOpen(true)}
-                  className="rounded-lg px-2.5 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+                  className="anim-press hidden cursor-pointer rounded-full px-3 py-1.5 text-[13.5px] font-medium text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.97] sm:block"
                 >
                   修改密码
                 </button>
                 <button
                   type="button"
                   onClick={logout}
-                  className="rounded-lg px-2.5 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+                  className="anim-press cursor-pointer rounded-full px-3 py-1.5 text-[13.5px] font-medium text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.97]"
                 >
                   退出
                 </button>
@@ -329,7 +346,7 @@ export default function App() {
                 type="button"
                 onClick={() => setPasswordDialogOpen(true)}
                 title="设置管理密码后，其他访问者将只能查看"
-                className="rounded-lg px-3 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100"
+                className="anim-press hidden cursor-pointer whitespace-nowrap rounded-full px-3 py-1.5 text-[13.5px] font-medium text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.97] sm:block"
               >
                 设置密码
               </button>
@@ -339,9 +356,9 @@ export default function App() {
                 type="button"
                 onClick={() => setSettingsOpen(true)}
                 title="设置"
-                className="ml-1 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                className="anim-press ml-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-ink-2 transition duration-200 ease-quart hover:bg-black/[0.05] hover:text-ink active:scale-[0.94]"
               >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
@@ -351,8 +368,12 @@ export default function App() {
         </div>
       </header>
 
-      <main ref={mainRef} className="mx-auto h-[calc(100vh-3.5rem)] max-w-[1440px] overflow-y-auto p-4 pb-10">
-        <div key={view} className="animate-fade-in">
+      <main
+        ref={mainRef}
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
+        className="mx-auto h-[calc(100vh-54px)] max-w-[1080px] overflow-y-auto px-5 pb-12 pt-5"
+      >
+        <div key={view}>
           {view === 'week' && week && (
             <WeekSection
               week={week}
@@ -380,7 +401,7 @@ export default function App() {
               onDelete={removeEventFromList}
             />
           )}
-          {view !== 'events' && !week && <p className="p-10 text-center text-sm text-slate-400">加载中…</p>}
+          {view !== 'events' && !week && <p className="p-12 text-center text-[13px] text-ink-4">加载中…</p>}
         </div>
       </main>
 
@@ -433,25 +454,15 @@ export default function App() {
         <ConfirmDialog title={confirm.title} message={confirm.message} onClose={() => setConfirm(null)} onConfirm={confirm.onConfirm} />
       )}
 
-      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 flex-col items-center gap-2">
+      {/* 轻提示：底部居中，深色胶囊 */}
+      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 flex-col items-center gap-2 px-4">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`animate-slide-up flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-white shadow-lg ring-1 ring-black/5 ${
-              t.type === 'ok' ? 'bg-slate-900' : 'bg-rose-600'
-            }`}
+            className="flex items-center gap-2 rounded-full bg-[#1d1d1f]/92 px-4 py-2.5 text-[13.5px] font-medium text-white shadow-overlay backdrop-blur-xl"
+            style={{ animation: 'toast-in 0.28s cubic-bezier(0.32,0.72,0,1) both' }}
           >
-            {t.type === 'ok' ? (
-              <svg className="shrink-0 text-emerald-400" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <path d="m9 11 3 3L22 4" />
-              </svg>
-            ) : (
-              <svg className="shrink-0 text-rose-100" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
-            )}
+            <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: t.type === 'ok' ? '#30d158' : '#ff453a' }} />
             {t.text}
           </div>
         ))}
@@ -475,41 +486,52 @@ function WeekSection({ week, editable, onCreateIn, onEditBlock, onEditEvent, onO
   const s = week.stats
   const totalMin = Math.max(1, s.freeMin + s.fixedMin + s.plannedMin)
   const pct = (n: number) => `${(n / totalMin) * 100}%`
+
+  const legend = [
+    { label: '固定安排', value: s.fixedMin, color: '#aeaeb2' },
+    { label: '已计划', value: s.plannedMin, color: '#0071e3' },
+    { label: '空闲', value: s.freeMin, color: '#30d158' },
+    ...BLOCK_CATEGORY_KEYS.filter((k) => (s.byCategory[k] ?? 0) > 0).map((k) => ({
+      label: BLOCK_CATEGORIES[k].label,
+      value: s.byCategory[k] ?? 0,
+      color: BLOCK_CATEGORIES[k].dot,
+    })),
+  ]
+
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       {week.eventCount === 0 && editable && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200/70">
-          <span>你还没有录入周期事件，整周时间都会被视为空闲。先添加课程、例会等固定安排吧。</span>
-          <button type="button" onClick={onGoEvents} className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-500">
+        <div className="flex flex-col items-start justify-between gap-3 rounded-card bg-surface px-4 py-3.5 shadow-card sm:flex-row sm:items-center">
+          <span className="text-[13.5px] leading-[1.65] text-ink">
+            你还没有录入周期事件，整周时间都会被视为空闲。先添加课程、例会等固定安排吧。
+          </span>
+          <button type="button" onClick={onGoEvents} className={`${btnPrimary} h-9 shrink-0 px-4 text-[13.5px]`}>
             去添加
           </button>
         </div>
       )}
 
-      {/* 本周时间预算：固定/已计划/空闲 的占比条 + 图例 */}
-      <div className="mb-3 rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200/80">
-        <div className="flex h-2.5 gap-0.5">
-          {s.fixedMin > 0 && <div className="rounded-full bg-gradient-to-r from-slate-400 to-slate-300" style={{ width: pct(s.fixedMin) }} />}
-          {s.plannedMin > 0 && <div className="rounded-full bg-gradient-to-r from-brand-500 to-brand-400" style={{ width: pct(s.plannedMin) }} />}
-          {s.freeMin > 0 && <div className="min-w-2 flex-1 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />}
+      {/* 本周时间预算：一段连续面板，配比条 + 图例，不用碎卡片堆 */}
+      <div className="rounded-panel bg-surface px-4 py-3.5 shadow-card">
+        <div className="flex items-center gap-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="shrink-0 text-[13px] text-ink-2">本周可用时间</span>
+            <span className="flex h-2 min-w-0 flex-1 gap-1 overflow-hidden rounded-full bg-track">
+              {s.fixedMin > 0 && <span className="bg-[#aeaeb2]" style={{ width: pct(s.fixedMin) }} />}
+              {s.plannedMin > 0 && <span className="bg-accent" style={{ width: pct(s.plannedMin) }} />}
+              {s.freeMin > 0 && <span className="min-w-1 flex-1 bg-[#30d158]" />}
+            </span>
+          </div>
+          <span className="shrink-0 text-[12.5px] text-ink-3">
+            空闲 <span className="tnum text-[15px] font-semibold tracking-[-0.01em] text-ink">{fmtDur(s.freeMin)}</span>
+          </span>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
-            <span className="h-2 w-2 rounded-full bg-slate-400" />
-            固定安排 <b className="font-semibold text-slate-900">{fmtDur(s.fixedMin)}</b>
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
-            <span className="h-2 w-2 rounded-full bg-brand-500" />
-            已计划 <b className="font-semibold text-slate-900">{fmtDur(s.plannedMin)}</b>
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            空闲 <b className="font-semibold text-slate-900">{fmtDur(s.freeMin)}</b>
-          </span>
-          {BLOCK_CATEGORY_KEYS.filter((k) => (s.byCategory[k] ?? 0) > 0).map((k) => (
-            <span key={k} className="flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 ring-1 ring-slate-100">
-              <span className={`h-2 w-2 rounded-full ${BLOCK_CATEGORIES[k].dot}`} />
-              {BLOCK_CATEGORIES[k].label} {fmtDur(s.byCategory[k] ?? 0)}
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-hairline pt-3">
+          {legend.map((l) => (
+            <span key={l.label} className="flex items-center gap-2 text-[12.5px] text-ink-2">
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: l.color }} />
+              {l.label}
+              <span className="tnum font-semibold text-ink">{fmtDur(l.value)}</span>
             </span>
           ))}
         </div>

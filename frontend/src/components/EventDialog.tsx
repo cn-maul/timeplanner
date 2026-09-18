@@ -57,7 +57,7 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
   return (
     <Modal title={initial ? '编辑周期事件' : '新增周期事件'} onClose={onClose} width="max-w-lg">
       <form
-        className="space-y-4"
+        className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
@@ -75,18 +75,23 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
 
         <Field label="分类">
           <div className="flex flex-wrap gap-2">
-            {EVENT_CATEGORY_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setCategory(key)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                  category === key ? EVENT_CATEGORIES[key].chip : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                }`}
-              >
-                {EVENT_CATEGORIES[key].label}
-              </button>
-            ))}
+            {EVENT_CATEGORY_KEYS.map((key) => {
+              const on = category === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCategory(key)}
+                  className={`anim-press cursor-pointer rounded-full px-3.5 py-1.5 text-[13.5px] transition duration-200 ease-quart active:scale-[0.97] ${
+                    on
+                      ? 'bg-accent font-semibold text-white shadow-[0_1px_2px_rgba(0,113,227,0.24)]'
+                      : 'bg-black/[0.05] font-medium text-ink-2 hover:bg-black/[0.08] hover:text-ink'
+                  }`}
+                >
+                  {EVENT_CATEGORIES[key].label}
+                </button>
+              )
+            })}
           </div>
         </Field>
 
@@ -100,8 +105,10 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
                   key={w}
                   type="button"
                   onClick={() => toggleDay(w)}
-                  className={`h-9 w-9 rounded-full border text-sm transition ${
-                    on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300'
+                  className={`anim-press h-9 w-9 cursor-pointer rounded-full text-[13.5px] font-medium transition duration-200 ease-quart active:scale-[0.94] ${
+                    on
+                      ? 'bg-accent font-semibold text-white'
+                      : 'bg-black/[0.05] text-ink-2 hover:bg-black/[0.08] hover:text-ink'
                   }`}
                 >
                   {label}
@@ -130,22 +137,28 @@ export default function EventDialog({ initial, onClose, onSave, onDelete }: Prop
         </div>
 
         <Field label="备注（可选）">
-          <textarea className={`${inputCls} h-16 resize-none`} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea className={`${inputCls} h-[68px] resize-none`} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 accent-brand-600"
-          />
+        <label className="-my-2 flex cursor-pointer items-center gap-3 py-2 text-[13.5px] text-ink">
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="peer sr-only" />
+          <span
+            className={`relative block h-[26px] w-[44px] shrink-0 rounded-full transition-colors duration-200 ease-quart ${
+              enabled ? 'bg-[#30d158]' : 'bg-track'
+            }`}
+          >
+            <span
+              className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-[left] duration-200 ease-quart ${
+                enabled ? 'left-[21px]' : 'left-[3px]'
+              }`}
+            />
+          </span>
           启用（停用后不再计入时间表）
         </label>
 
         <ErrorText text={error} />
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2">
           {onDelete && (
             <button type="button" onClick={onDelete} className={btnDangerGhost}>
               删除

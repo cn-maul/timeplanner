@@ -43,16 +43,14 @@ export default function PasswordDialog({ mode, onClose, onSaved }: Props) {
   return (
     <Modal title={mode === 'set' ? '设置管理密码' : '修改管理密码'} onClose={onClose} width="max-w-sm">
       <form
-        className="space-y-4"
+        className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
         }}
       >
-        <p className="text-sm text-slate-500">
-          {mode === 'set'
-            ? '设置后，访问者只能查看时间表，添加和修改需要输入密码。'
-            : '保存后其他已登录的设备需要用新密码重新登录。'}
+        <p className="text-[13.5px] leading-[1.7] text-ink-2">
+          {mode === 'set' ? '设置后，访问者只能查看时间表，添加和修改需要输入密码。' : '保存后其他已登录的设备需要用新密码重新登录。'}
         </p>
         <Field label="新密码">
           <input type="password" className={inputCls} value={next} onChange={(e) => setNext(e.target.value)} autoFocus />
@@ -61,7 +59,7 @@ export default function PasswordDialog({ mode, onClose, onSaved }: Props) {
           <input type="password" className={inputCls} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         </Field>
         <ErrorText text={error} />
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnGhost}>
             取消
           </button>

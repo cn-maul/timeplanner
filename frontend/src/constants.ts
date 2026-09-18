@@ -2,58 +2,70 @@ import type { BlockCategory, EventCategory } from './types'
 
 export interface CategoryMeta {
   label: string
-  /** 时间轴条目样式：低饱和底色 + 左侧色条 + 同色系深色文字，事件与安排统一使用 */
+  /** 时间轴条目：中性或单色系的浅底 + 左侧色条（色条颜色为内联样式，避免动态类名被裁剪） */
   cell: string
+  /** 左侧 3px 色条的颜色 */
+  bar: string
+  /** 圆点颜色（内联样式） */
   dot: string
+  /** 标签样式 */
   chip: string
 }
 
+/** 固定日程：结构与安排区分——中性灰底 + 细分隔线，色相只用来暗示类别 */
 export const EVENT_CATEGORIES: Record<EventCategory, CategoryMeta> = {
   meeting: {
     label: '会议',
-    cell: 'border-l-[3px] border-blue-500 bg-blue-50/95 text-blue-800',
-    dot: 'bg-blue-500',
-    chip: 'border-blue-200 bg-blue-100 text-blue-700',
+    cell: 'bg-black/[0.05] text-ink',
+    bar: '#8e8e93',
+    dot: '#8e8e93',
+    chip: 'bg-black/[0.05] text-ink-2',
   },
   class: {
     label: '课程',
-    // 用偏品红的 purple 而不是 violet，避免与「工作」的 indigo 混淆
-    cell: 'border-l-[3px] border-purple-500 bg-purple-50/95 text-purple-800',
-    dot: 'bg-purple-500',
-    chip: 'border-purple-200 bg-purple-100 text-purple-700',
+    cell: 'bg-black/[0.05] text-ink',
+    bar: '#5e5ce6',
+    dot: '#5e5ce6',
+    chip: 'bg-black/[0.05] text-ink-2',
   },
   life: {
     label: '生活',
-    cell: 'border-l-[3px] border-rose-500 bg-rose-50/95 text-rose-800',
-    dot: 'bg-rose-500',
-    chip: 'border-rose-200 bg-rose-100 text-rose-700',
+    cell: 'bg-black/[0.05] text-ink',
+    bar: '#ff9f0a',
+    dot: '#ff9f0a',
+    chip: 'bg-black/[0.05] text-ink-2',
   },
   other: {
     label: '其他',
-    cell: 'border-l-[3px] border-slate-400 bg-slate-100/95 text-slate-700',
-    dot: 'bg-slate-500',
-    chip: 'border-slate-200 bg-slate-100 text-slate-600',
+    cell: 'bg-black/[0.05] text-ink',
+    bar: '#aeaeb2',
+    dot: '#aeaeb2',
+    chip: 'bg-black/[0.05] text-ink-2',
   },
 }
 
+/** 已安排活动：白底 + 左侧色条 + 细描边，浮在灰底的固定日程之上 */
 export const BLOCK_CATEGORIES: Record<BlockCategory, CategoryMeta> = {
   work: {
     label: '工作',
-    cell: 'border-l-[3px] border-indigo-500 bg-indigo-50/95 text-indigo-800',
-    dot: 'bg-indigo-500',
-    chip: 'border-indigo-200 bg-indigo-100 text-indigo-700',
+    cell: 'bg-white ring-1 ring-black/[0.06] text-ink',
+    bar: '#0071e3',
+    dot: '#0071e3',
+    chip: 'bg-accent/[0.08] text-accent-link',
   },
   study: {
     label: '学习',
-    cell: 'border-l-[3px] border-cyan-500 bg-cyan-50/95 text-cyan-800',
-    dot: 'bg-cyan-500',
-    chip: 'border-cyan-200 bg-cyan-100 text-cyan-700',
+    cell: 'bg-white ring-1 ring-black/[0.06] text-ink',
+    bar: '#5e5ce6',
+    dot: '#5e5ce6',
+    chip: 'bg-accent/[0.08] text-accent-link',
   },
   leisure: {
     label: '休闲',
-    cell: 'border-l-[3px] border-pink-500 bg-pink-50/95 text-pink-800',
-    dot: 'bg-pink-500',
-    chip: 'border-pink-200 bg-pink-100 text-pink-700',
+    cell: 'bg-white ring-1 ring-black/[0.06] text-ink',
+    bar: '#30b06b',
+    dot: '#30b06b',
+    chip: 'bg-accent/[0.08] text-accent-link',
   },
 }
 
